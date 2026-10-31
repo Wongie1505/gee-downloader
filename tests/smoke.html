@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>GEE smoke test</title>
+
+  <!-- Pin VERSION to a real npm release, never use latest -->
+  <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@1.7.50/build/ee_api_js.js"></script>
+</head>
+
+<body>
+  <h3>GEE smoke test</h3>
+
+  <label>Project ID <input id="project" size="30"></label>
+  <br><br>
+
+  <button id="btn-signin">1. Sign in</button>
+  <button id="btn-init">2. Initialize EE</button>
+  <button id="btn-export">3. Export test image</button>
+  <button id="btn-status">4. Check task status</button>
+
+  <pre id="log"></pre>
+
+  <script>
+    // Public by design, safe to commit
+    const CLIENT_ID = '29946767193-n4pnft35qmjtvjq0k29fd5t341nrfo33.apps.googleusercontent.com';
+
+    let operationName = null;
+
+    // Append a line to the on-page log
+    function log(message) {
+      document.getElementById('log').textContent += message + '\n';
+    }
+
+    // Step 1: try silent sign-in, fall back to the popup
+    document.getElementById('btn-signin').onclick = () => {
+      ee.data.authenticateViaOauth(
+        CLIENT_ID,
+        () => log('Signed in'),
+        (err) => log('Auth error: ' + err),
+        null,
+        () => ee.data.authenticateViaPopup(
+          () => log('Signed in (popup)'),
+          (err) => log('Popup error: ' + err)
+        )
+      );
+    };
+
+    // Step 2: connect EE to the user's Cloud project
+    document.getElementById('btn-init').onclick = () => {
+      const projectId = document.getElementById('project').value.trim();
+
+      ee.initialize(
+        null,
+        null,
+        () => log('EE initialized'),
+        (err) => log('Init error: ' + err),
+        null,
+        projectId
+      );
+    };
+
+   // Step 3: export a small DEM tile through the REST endpoint
+document.getElementById('btn-export').onclick = async () => {
+  const projectId = document.getElementById('project').value.trim();
+
+
+  const region = ee.Geometry.Rectangle([33.95, -11.5, 34.05, -11.4]);
+
+  // Clip and scale inside the expression, so the request needs no region or scale fields
+  const image = ee.Image('USGS/SRTMGL1_003')
+    .clipToBoundsAndScale(region, null, null, null, 90);
+
+  const body = {
+    expression: JSON.parse(ee.Serializer.toCloudApiJSON(image)),
+    description: 'gd_smoke_test',
+    fileExportOptions: {
+      fileFormat: 'GEO_TIFF',
+      driveDestination: {
+        folder: 'GEE_Downloader_Test',
+        filenamePrefix: 'smoke_dem'
+      }
+    },
+    requestId: crypto.randomUUID()
+  };
+
+  const url = 'https://earthengine.googleapis.com/v1/projects/'
+    + projectId
+    + '/image:export';
+
+  try {
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        // The library already holds the signed-in user's token
+        Authorization: ee.data.getAuthToken(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+
+    const data = await response.json();
+    log('Response: ' + JSON.stringify(data));
+
+    // Operation name looks like projects/X/operations/Y
+    operationName = data.name || null;
+  } catch (err) {
+    log('Export error: ' + err);
+  }
+};
+
+// Step 4: read the operation state through the library
+document.getElementById('btn-status').onclick = () => {
+  if (!operationName) {
+    log('No operation yet');
+    return;
+  }
+
+  ee.data.getOperation(operationName, (op, err) => {
+    if (err) {
+      log('Status error: ' + err);
+    } else {
+      log('State: ' + JSON.stringify(op.metadata));
+    }
+  });
+};
+  </script>
+</body>
+</html>
