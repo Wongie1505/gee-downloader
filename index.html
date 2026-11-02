@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/layout.css">
   <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/signin.css">
 </head>
 
 <body>
@@ -33,6 +34,8 @@
       <a href="#about" data-nav="about">About</a>
       <!-- Shown on the home screen only. Phase 2 turns this into real sign-in -->
       <a class="btn btn-primary nav-login" href="#app">Log in</a>
+      <span id="user-pill" class="user-pill" title="Earth Engine project" hidden></span>
+      <button id="logout" type="button" class="btn btn-ghost btn-small" hidden>Log out</button>
     </nav>
   </header>
 
@@ -40,10 +43,11 @@
     <!-- Home: pitch on the left, live map on the right -->
     <section class="screen home" data-screen="home">
       <div class="home-copy">
-        <h1>Earth Engine data Download</h1>
+        <h1>Earth Engine data, without the code.</h1>
         <p class="lede">
-          Skip the code; Pick a dataset and an area in Malawi, and get rainfall, vegetation,
-          land cover or elevation sent straight to your Google Drive..
+          Pick a dataset and an area in Malawi, and get rainfall, vegetation,
+          land cover or elevation sent straight to your Google Drive. No
+          scripts, and no clicking Run 300 times.
         </p>
         <a class="btn btn-primary btn-large" href="#app">Start a download</a>
         <p class="fine">
@@ -101,7 +105,7 @@
         <dt>Data access</dt>
         <dd>Google Earth Engine</dd>
         <dt>Base map</dt>
-        <dd>OpenStreetMap contributors and CARTO</dd>
+        <dd>OpenStreetMap contributors</dd>
       </dl>
     </section>
 
@@ -117,7 +121,7 @@
   </main>
 
   <footer class="footer">
-    <span>TheGISguy</span>
+    <span>Built by Wakuzilwa Ms, Malawi University of Science and Technology</span>
 
     <nav aria-label="Footer">
       <a href="#about">About</a>
@@ -129,7 +133,74 @@
     </nav>
   </footer>
 
+  <!-- Login dialog: first visit opens the access guide, later visits open login -->
+  <dialog id="signin-dialog" class="signin" aria-labelledby="signin-title">
+    <div class="signin-body">
+      <button type="button" class="link dialog-close" data-close>Close</button>
+
+      <section data-view="login" hidden>
+        <h2 id="signin-title">Log in</h2>
+        <p>
+          Sign in with Google and tell us which Earth Engine project to use.
+          Your exports run on your own project and land in your own Drive.
+        </p>
+
+        <div class="field">
+          <label for="project-id">Earth Engine Project ID</label>
+          <input
+            id="project-id"
+            type="text"
+            autocomplete="off"
+            spellcheck="false"
+            placeholder="my-project-123">
+          <small class="field-note">
+            Not sure?
+            <button type="button" class="link" data-show="help">How do I get access?</button>
+          </small>
+        </div>
+
+        <p id="signin-error" class="form-error" role="alert" hidden></p>
+
+        <button id="signin-submit" type="button" class="btn btn-primary btn-block">
+          Sign in with Google
+        </button>
+        <p class="field-note">Google opens in a pop-up. Allow pop-ups if your browser blocks it.</p>
+      </section>
+
+      <section data-view="help">
+        <h2>Get access in 5 minutes</h2>
+        <ol class="help-steps">
+          <li>
+            <strong>Register a project.</strong>
+            Open
+            <a href="https://code.earthengine.google.com/register" target="_blank" rel="noopener">the Earth Engine registration page</a>,
+            sign in, and create a project. Choose the unpaid, noncommercial option.
+          </li>
+          <li>
+            <strong>Finish the questionnaire.</strong>
+            Google checks that your use is noncommercial. Access starts when it is done.
+          </li>
+          <li>
+            <strong>Copy your Project ID.</strong>
+            In the
+            <a href="https://console.cloud.google.com/earth-engine/configuration" target="_blank" rel="noopener">Cloud console</a>
+            the ID shows in the project picker, next to the project name. It is lowercase with dashes.
+          </li>
+          <li>
+            <strong>Get on the tester list.</strong>
+            While this app is in testing, ask the developer to add your Google account.
+          </li>
+        </ol>
+        <button type="button" class="btn btn-primary btn-block" data-show="login">
+          I have my Project ID
+        </button>
+      </section>
+    </div>
+  </dialog>
+
   <script src="vendor/leaflet/leaflet.js"></script>
+  <!-- Earth Engine browser library, pinned to one version -->
+  <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@1.7.50/build/ee_api_js.js"></script>
   <script type="module" src="js/main.js"></script>
 </body>
 </html>

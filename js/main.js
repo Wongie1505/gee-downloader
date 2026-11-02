@@ -2,6 +2,7 @@ import { initRouter } from './router.js';
 import { on } from './state.js';
 import { getMap, refreshMaps } from './ui/map.js';
 import { initMapLayers } from './ui/map-layers.js';
+import { initSignIn } from './screens/signin/signin.js';
 import { initWizard } from './screens/wizard/wizard.js';
 import { CONTACT_EMAIL } from './config.js';
 
@@ -25,6 +26,9 @@ on('screen:shown', (name) => {
 
 // Registered after the handler above, so the map exists when layers draw
 initMapLayers();
+
+// Before the router, so the login dialog is ready when it asks for it
+initSignIn();
 
 if (CONTACT_EMAIL) {
   document.getElementById('contact-link').href = `mailto:${CONTACT_EMAIL}`;
