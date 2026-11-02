@@ -1,0 +1,67 @@
+// Loads the bundled district boundaries and checks them. No DOM in here.
+
+const FILE = 'data/malawi-districts.geojson';
+const NAME_KEYS = ['Name'];
+
+let cached = null;
+
+// Returns [{ name, feature }] sorted by name. Loaded once, then reused.
+export function loadDistricts() {
+  if (!cached) {
+    cached = fetchDistricts().catch((error) => {
+      // Do not cache a failure, so a retry can work
+      cached = null;
+      throw error;
+    });
+  }
+
+  return cached;
+}
+
+function nameOf(properties = {}) {
+  const key = NAME_KEYS.find((candidate) => properties[candidate]);
+
+  return key ? String(properties[key]).trim() : null;
+}
+
+function isPolygon(feature) {
+  const type = feature?.geometry?.type;
+
+  return type === 'Polygon' || type === 'MultiPolygon';
+}
+
+async function fetchDistricts() {
+  const response = await fetch(FILE);
+
+  if (!response.ok) {
+    throw new Error(`Could not load ${FILE} (status ${response.status}).`);
+  }
+
+  const data = await response.json();
+  const polygons = (data.features || []).filter(isPolygon);
+
+  if (polygons.length === 0) {
+    throw new Error(`${FILE} has no polygon features.`);
+  }
+
+  const districts = polygons
+    .map((feature) => ({ name: nameOf(feature.properties), feature }))
+    .filter((district) => district.name);
+
+  if (districts.length === 0) {
+    const fields = Object.keys(polygons[0].properties || {}).join(', ');
+
+    throw new Error(`No name field found in ${FILE}. Fields present: ${fields || 'none'}.`);
+  }
+
+  // Keep only the name so the GeoJSON stays small in state
+  districts.forEach((district) => {
+    district.feature = {
+      type: 'Feature',
+      properties: { name: district.name },
+      geometry: district.feature.geometry
+    };
+  });
+
+  return districts.sort((a, b) => a.name.localeCompare(b.name));
+}

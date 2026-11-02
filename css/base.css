@@ -1,0 +1,61 @@
+:root {
+  /* Palette: chart paper, ink, contour green */
+  --paper: #eef1ec;
+  --panel: #fbfcfa;
+  --ink: #1b2420;
+  --muted: #5f6b64;
+  --line: #d5dbd3;
+  --contour: #2f6b4f;
+  --contour-soft: #e1ede6;
+  --danger: #a8322a;
+
+  /* Type: serif for titles like a map legend, sans for body */
+  --font-body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --font-title: "Source Serif 4", Georgia, serif;
+  --font-mono: ui-monospace, Consolas, "Courier New", monospace;
+
+  /* Big radius for the panel, small for items inside it */
+  --r-panel: 12px;
+  --r-item: 6px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+code {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+:focus-visible {
+  outline: 2px solid var(--contour);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}

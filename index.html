@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>GEE Downloader: Earth Engine data without code</title>
+  <meta
+    name="description"
+    content="Pick a dataset and an area in Malawi, and get rainfall, vegetation, land cover or elevation sent to your Google Drive. No code.">
+
+  <link
+    rel="icon"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Ccircle cx='16' cy='16' r='14' fill='%232f6b4f'/%3E%3Cpath d='M6 20c4-8 8 2 12-6s6 2 8-2' stroke='%23fff' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600&family=Source+Serif+4:wght@600&display=swap"
+    rel="stylesheet">
+
+  <link rel="stylesheet" href="vendor/leaflet/leaflet.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <link rel="stylesheet" href="css/components.css">
+</head>
+
+<body>
+  <header class="topbar">
+    <a class="brand" href="#home">GEE Downloader</a>
+
+    <nav class="nav" aria-label="Main">
+      <a href="#home" data-nav="home">Home</a>
+      <a href="#about" data-nav="about">About</a>
+      <!-- Shown on the home screen only. Phase 2 turns this into real sign-in -->
+      <a class="btn btn-primary nav-login" href="#app">Log in</a>
+    </nav>
+  </header>
+
+  <main>
+    <!-- Home: pitch on the left, live map on the right -->
+    <section class="screen home" data-screen="home">
+      <div class="home-copy">
+        <h1>Earth Engine data Download</h1>
+        <p class="lede">
+          Skip the code; Pick a dataset and an area in Malawi, and get rainfall, vegetation,
+          land cover or elevation sent straight to your Google Drive..
+        </p>
+        <a class="btn btn-primary btn-large" href="#app">Start a download</a>
+        <p class="fine">
+          You need a free Google Earth Engine account.
+          <a href="#about">How it works</a>
+        </p>
+      </div>
+
+      <div class="home-map">
+        <div id="hero-map" aria-label="Map of Malawi"></div>
+      </div>
+    </section>
+
+    <!-- About: what it is, what you need, credits -->
+    <section class="screen about" data-screen="about" hidden>
+      <h1>About GEE Downloader</h1>
+      <p>
+        Google Earth Engine holds decades of satellite data, but getting it
+        out means writing JavaScript and clicking Run for every export. This
+        app does that part for you. Choose what you need, and the files land
+        in your own Google Drive.
+      </p>
+
+      <h2>How it works</h2>
+      <ol>
+        <li>Log in with your Google account and your Earth Engine project.</li>
+        <li>Pick a dataset, then an area: a district, an uploaded file, or one you draw.</li>
+        <li>Choose the years and how to group them.</li>
+        <li>Download. Earth Engine runs the job and saves the files in Drive.</li>
+      </ol>
+
+      <h2>What you need</h2>
+      <p>
+        A Google account registered for Earth Engine, with a Cloud project ID.
+        Registration is free for non-commercial use. While the app is in
+        testing, only Google accounts added by the developer can log in.
+      </p>
+
+      <h2>Privacy</h2>
+      <p>
+        This site has no server. Login happens with Google, and your exports
+        go to your own Drive. Nothing about you is stored here.
+      </p>
+
+      <h2>Data and map credits</h2>
+      <dl class="credits">
+        <dt>Rainfall</dt>
+        <dd>CHIRPS, Climate Hazards Center, UC Santa Barbara</dd>
+        <dt>Vegetation and land cover by year</dt>
+        <dd>MODIS, NASA LP DAAC</dd>
+        <dt>Land cover 2021</dt>
+        <dd>ESA WorldCover</dd>
+        <dt>Elevation</dt>
+        <dd>SRTM, NASA and USGS</dd>
+        <dt>Data access</dt>
+        <dd>Google Earth Engine</dd>
+        <dt>Base map</dt>
+        <dd>OpenStreetMap contributors and CARTO</dd>
+      </dl>
+    </section>
+
+    <!-- App: wizard on the left, map and info on the right -->
+    <section class="screen app" data-screen="app" hidden>
+      <aside id="wizard-card" class="wizard"></aside>
+
+      <div class="pane">
+        <div id="app-map" aria-label="Map"></div>
+        <div id="pane-info" class="pane-info"></div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <span>TheGISguy</span>
+
+    <nav aria-label="Footer">
+      <a href="#about">About</a>
+      <a
+        id="contact-link"
+        href="https://github.com/Wongie1505"
+        target="_blank"
+        rel="noopener">Contact</a>
+    </nav>
+  </footer>
+
+  <script src="vendor/leaflet/leaflet.js"></script>
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
