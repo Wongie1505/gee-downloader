@@ -397,3 +397,45 @@ a:not(.btn) {
   font-weight: 400;
   color: var(--muted);
 }
+
+/* ---- Area step: upload and draw ---- */
+.area-actions {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 10px 0 0;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.link[disabled] {
+  color: var(--muted);
+  text-decoration: none;
+  cursor: not-allowed;
+}
+
+.soon {
+  color: var(--muted);
+}
+
+.area-status {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-item);
+}
+
+.area-status.ok {
+  background: var(--contour-soft);
+  border-color: var(--contour);
+}
+
+.area-status.busy {
+  color: var(--muted);
+}
+
+.area-status.error {
+  color: var(--danger);
+  border-color: var(--danger);
+}

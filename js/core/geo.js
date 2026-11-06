@@ -39,3 +39,8 @@ export function areaKm2(geometry) {
 
   return 0;
 }
+
+// 12345.6 becomes "12,346"
+export function formatNumber(value) {
+  return Math.round(value).toLocaleString('en');
+}

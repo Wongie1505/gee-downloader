@@ -4,20 +4,23 @@ import { CLIENT_ID } from '../config.js';
 
 const PROJECT_KEY = 'gd_project_id';
 const HELP_KEY = 'gd_help_seen';
+const SESSION_KEY = 'gd_session';
 
-// Google tokens last about an hour, so refresh a little before that
+// Google tokens last about an hour, so treat them as old a little before that
+const TOKEN_LIFETIME_MS = 60 * 60 * 1000;
 const REFRESH_AFTER_MS = 50 * 60 * 1000;
 
 // Cloud project IDs: 6 to 30 characters, lowercase letters, digits, dashes
 const PROJECT_PATTERN = /^[a-z][a-z0-9-]{4,28}[a-z0-9]$/;
 
 let signedInAt = 0;
+let activeProject = '';
 
 export function isValidProjectId(value) {
   return PROJECT_PATTERN.test(value);
 }
 
-// ---- Small localStorage helpers, storage can be blocked by the browser ----
+// ---- Small storage helpers, the browser may block storage ----
 
 function readStorage(key) {
   try {
@@ -51,17 +54,64 @@ export function markHelpSeen() {
   writeStorage(HELP_KEY, '1');
 }
 
-// ---- Sign in, refresh, sign out ----
+// ---- Session kept for this tab only (sessionStorage) ----
+// It survives a refresh and a hard refresh, and it is gone when the tab or
+// browser closes. The token is Earth Engine scope only and lasts about an hour.
+
+function readSession() {
+  try {
+    return JSON.parse(sessionStorage.getItem(SESSION_KEY));
+  } catch (error) {
+    return null;
+  }
+}
+
+function saveSession() {
+  const header = ee.data.getAuthToken();
+
+  if (!header) {
+    return;
+  }
+
+  const session = {
+    token: String(header).replace(/^Bearer\s+/i, ''),
+    savedAt: Date.now(),
+    projectId: activeProject
+  };
+
+  try {
+    sessionStorage.setItem(SESSION_KEY, JSON.stringify(session));
+  } catch (error) {
+    // Without storage the user simply logs in again after a refresh
+  }
+}
+
+function clearSession() {
+  try {
+    sessionStorage.removeItem(SESSION_KEY);
+  } catch (error) {
+    // Nothing to clear
+  }
+}
+
+function startSession(projectId, startedAt = Date.now()) {
+  activeProject = projectId;
+  signedInAt = startedAt;
+}
+
+// ---- Sign in, restore, refresh, sign out ----
 
 export function signIn(projectId) {
   return authenticate()
     .then(() => initialize(projectId))
     .then(() => {
-      signedInAt = Date.now();
+      startSession(projectId);
+      saveSession();
     });
 }
 
-function authenticate() {
+// Without a popup it only works if Google can sign the user in silently
+function authenticate({ allowPopup = true } = {}) {
   return new Promise((resolve, reject) => {
     if (typeof ee === 'undefined') {
       reject(new Error('The Earth Engine library did not load. Check your connection and reload.'));
@@ -78,8 +128,13 @@ function authenticate() {
       resolve,
       reject,
       null,
-      // Silent sign-in failed, so open the Google popup
-      () => ee.data.authenticateViaPopup(resolve, reject)
+      () => {
+        if (allowPopup) {
+          ee.data.authenticateViaPopup(resolve, reject);
+        } else {
+          reject(new Error('Silent sign-in failed.'));
+        }
+      }
     );
   });
 }
@@ -90,21 +145,56 @@ function initialize(projectId) {
   });
 }
 
+// Hand a saved token back to the library without opening Google
+function useStoredToken(session) {
+  const ageSeconds = Math.floor((Date.now() - session.savedAt) / 1000);
+  const secondsLeft = Math.max(60, Math.floor(TOKEN_LIFETIME_MS / 1000) - ageSeconds);
+
+  ee.data.setAuthToken(CLIENT_ID, 'Bearer', session.token, secondsLeft, [], () => {}, false);
+}
+
+// Called once at page load. Returns the project ID, or null if the user
+// has to log in. It never throws and never opens a popup.
+export async function restoreSession() {
+  const saved = readSession();
+
+  if (!saved || !saved.token || !saved.projectId || typeof ee === 'undefined') {
+    return null;
+  }
+
+  try {
+    const stillFresh = Date.now() - saved.savedAt < REFRESH_AFTER_MS;
+
+    if (stillFresh) {
+      useStoredToken(saved);
+      await initialize(saved.projectId);
+      startSession(saved.projectId, saved.savedAt);
+    } else {
+      // Old token: ask Google for a new one without a popup
+      await authenticate({ allowPopup: false });
+      await initialize(saved.projectId);
+      startSession(saved.projectId);
+      saveSession();
+    }
+
+    return saved.projectId;
+  } catch (error) {
+    clearSession();
+
+    return null;
+  }
+}
+
 export function isStale() {
   return signedInAt > 0 && Date.now() - signedInAt > REFRESH_AFTER_MS;
 }
 
+// Silent refresh. If Google needs the user to click, this fails and the
+// caller shows the login dialog.
 export function refreshToken() {
-  return new Promise((resolve, reject) => {
-    ee.data.refreshAuthToken(
-      () => {
-        signedInAt = Date.now();
-        resolve();
-      },
-      reject,
-      // Needing the user to click again counts as a failure here
-      reject
-    );
+  return authenticate({ allowPopup: false }).then(() => {
+    signedInAt = Date.now();
+    saveSession();
   });
 }
 
@@ -113,7 +203,9 @@ export function signOut() {
     ee.data.clearAuthToken();
   }
 
+  clearSession();
   signedInAt = 0;
+  activeProject = '';
 }
 
 // ---- Turn raw Google and Earth Engine errors into plain sentences ----

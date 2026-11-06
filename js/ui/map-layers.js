@@ -9,7 +9,7 @@ const OUTLINE = { color: '#2f6b4f', weight: 3, fill: false };
 
 let step = 'data';
 let areaLayer = null;
-let areaName = null;
+let areaFeature = null;
 let previewLayer = null;
 let previewId = null;
 
@@ -43,9 +43,9 @@ function render(refit) {
 // Outline of the chosen district, shown after the Data step
 function syncArea(map, state) {
   const wanted = step !== 'data' && state.area ? state.area : null;
-  const wantedName = wanted ? wanted.name : null;
+  const wantedFeature = wanted ? wanted.feature : null;
 
-  if (wantedName === areaName) {
+  if (wantedFeature === areaFeature) {
     return false;
   }
 
@@ -58,7 +58,7 @@ function syncArea(map, state) {
     areaLayer = L.geoJSON(wanted.feature, { style: OUTLINE }).addTo(map);
   }
 
-  areaName = wantedName;
+  areaFeature = wantedFeature;
 
   return true;
 }

@@ -74,7 +74,7 @@
       <h2>How it works</h2>
       <ol>
         <li>Log in with your Google account and your Earth Engine project.</li>
-        <li>Pick a dataset, then an area: a district, an uploaded file, or one you draw.</li>
+        <li>Pick a dataset, then an area: a district, or your own file (GeoJSON or a zipped shapefile).</li>
         <li>Choose the years and how to group them.</li>
         <li>Download. Earth Engine runs the job and saves the files in Drive.</li>
       </ol>
@@ -199,6 +199,7 @@
   </dialog>
 
   <script src="vendor/leaflet/leaflet.js"></script>
+  <script src="vendor/shp/shp.min.js"></script>
   <!-- Earth Engine browser library, pinned to one version -->
   <script src="https://cdn.jsdelivr.net/npm/@google/earthengine@1.7.50/build/ee_api_js.js"></script>
   <script type="module" src="js/main.js"></script>

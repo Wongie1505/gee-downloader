@@ -6,6 +6,7 @@ import {
   signOut,
   isStale,
   refreshToken,
+  restoreSession,
   isValidProjectId,
   savedProjectId,
   saveProjectId,
@@ -154,6 +155,16 @@ function handleLogout() {
 
   // A fresh page is the cleanest reset for the Earth Engine library
   hooks.reload();
+}
+
+// ---- Restore a login from this tab after a refresh ----
+
+export async function tryRestoreSession() {
+  const projectId = await restoreSession();
+
+  if (projectId) {
+    setState({ user: { projectId }, projectId });
+  }
 }
 
 // ---- Session expiry ----

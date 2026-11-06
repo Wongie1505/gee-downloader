@@ -1,7 +1,16 @@
 // Loads the bundled district boundaries and checks them. No DOM in here.
 
+import { areaKm2 } from './geo.js';
+
 const FILE = 'data/malawi-districts.geojson';
+
+
+
+
+// Lowercase on purpose: field names are matched ignoring capitals
 const NAME_KEYS = ['Name'];
+
+
 
 let cached = null;
 
@@ -18,16 +27,20 @@ export function loadDistricts() {
   return cached;
 }
 
+
+// Finds the district name whatever the capitals: Name, NAME and name all work
 function nameOf(properties = {}) {
-  const key = NAME_KEYS.find((candidate) => properties[candidate]);
+  const fields = Object.keys(properties);
 
-  return key ? String(properties[key]).trim() : null;
-}
+  for (const wanted of NAME_KEYS) {
+    const field = fields.find((f) => f.toLowerCase() === wanted && properties[f]);
 
-function isPolygon(feature) {
-  const type = feature?.geometry?.type;
+    if (field) {
+      return String(properties[field]).trim();
+    }
+  }
 
-  return type === 'Polygon' || type === 'MultiPolygon';
+  return null;
 }
 
 async function fetchDistricts() {
@@ -64,4 +77,16 @@ async function fetchDistricts() {
   });
 
   return districts.sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// The biggest district (Mzimba) sets the size limit for uploaded areas
+export function largestDistrict(districts) {
+  return districts.reduce(
+    (best, district) => {
+      const km2 = areaKm2(district.feature.geometry);
+
+      return km2 > best.km2 ? { name: district.name, km2 } : best;
+    },
+    { name: '', km2: 0 }
+  );
 }

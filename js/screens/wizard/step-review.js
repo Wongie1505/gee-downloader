@@ -15,9 +15,16 @@ export function isValid(state) {
   return FOLDER_PATTERN.test(state.folderName);
 }
 
+// Letters and digits only, so the default folder name always passes the check
+function slug(text) {
+  const clean = text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+  return clean.slice(0, 30) || 'area';
+}
+
 // Default folder name like rainfall_zomba_2015-2024
 function suggestFolder(state, dataset) {
-  const parts = [dataset.slug, state.area.name.toLowerCase()];
+  const parts = [dataset.slug, slug(state.area.name)];
 
   if (state.range) {
     parts.push(`${state.range.start}-${state.range.end}`);

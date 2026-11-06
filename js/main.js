@@ -2,7 +2,7 @@ import { initRouter } from './router.js';
 import { on } from './state.js';
 import { getMap, refreshMaps } from './ui/map.js';
 import { initMapLayers } from './ui/map-layers.js';
-import { initSignIn } from './screens/signin/signin.js';
+import { initSignIn, tryRestoreSession } from './screens/signin/signin.js';
 import { initWizard } from './screens/wizard/wizard.js';
 import { CONTACT_EMAIL } from './config.js';
 
@@ -29,6 +29,11 @@ initMapLayers();
 
 // Before the router, so the login dialog is ready when it asks for it
 initSignIn();
+
+// Bring back this tab's login first, so a refresh on #app stays in the app
+document.body.classList.add('restoring');
+await tryRestoreSession();
+document.body.classList.remove('restoring');
 
 if (CONTACT_EMAIL) {
   document.getElementById('contact-link').href = `mailto:${CONTACT_EMAIL}`;
