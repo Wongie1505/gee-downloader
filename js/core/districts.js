@@ -3,14 +3,8 @@
 import { areaKm2 } from './geo.js';
 
 const FILE = 'data/malawi-districts.geojson';
-
-
-
-
 // Lowercase on purpose: field names are matched ignoring capitals
-const NAME_KEYS = ['Name'];
-
-
+const NAME_KEYS = ['name', 'name_2', 'adm2_en', 'shapename', 'district'];
 
 let cached = null;
 
@@ -27,7 +21,6 @@ export function loadDistricts() {
   return cached;
 }
 
-
 // Finds the district name whatever the capitals: Name, NAME and name all work
 function nameOf(properties = {}) {
   const fields = Object.keys(properties);
@@ -41,6 +34,12 @@ function nameOf(properties = {}) {
   }
 
   return null;
+}
+
+function isPolygon(feature) {
+  const type = feature?.geometry?.type;
+
+  return type === 'Polygon' || type === 'MultiPolygon';
 }
 
 async function fetchDistricts() {
