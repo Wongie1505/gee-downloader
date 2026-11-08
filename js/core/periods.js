@@ -38,3 +38,19 @@ export function sampleLabels(range, timeStep, count = 3) {
 
   return labels;
 }
+
+// More values than this makes the export very slow, so the Time step blocks it
+export const MAX_PERIODS = 5000;
+
+const UNITS = { daily: 'day', monthly: 'month', yearly: 'year' };
+const LABEL_FORMATS = { daily: 'YYYY-MM-dd', monthly: 'YYYY-MM', yearly: 'YYYY' };
+
+// Everything Earth Engine needs to loop over the periods on its side
+export function periodSpec(range, timeStep) {
+  return {
+    startDate: `${range.start}-01-01`,
+    unit: UNITS[timeStep],
+    format: LABEL_FORMATS[timeStep],
+    count: countPeriods(range, timeStep)
+  };
+}

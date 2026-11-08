@@ -46,6 +46,7 @@ export function initSignIn() {
 
   // The router asks for this when a signed-out user opens the app
   on('auth:required', () => openSignIn());
+  on('session:expired', () => expire());
   on('change', renderHeader);
 
   renderHeader();

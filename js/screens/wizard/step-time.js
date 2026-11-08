@@ -1,5 +1,5 @@
 import { getDataset } from '../../data/catalog.js';
-import { countPeriods } from '../../core/periods.js';
+import { countPeriods, MAX_PERIODS } from '../../core/periods.js';
 import { setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard, factList } from '../../ui/info.js';
@@ -11,7 +11,11 @@ export const hint = 'Choose the period and how to group it.';
 export function isValid(state) {
   const dataset = getDataset(state.datasetId);
 
-  return Boolean(state.range) && dataset.steps.includes(state.timeStep);
+  return (
+    Boolean(state.range) &&
+    dataset.steps.includes(state.timeStep) &&
+    countPeriods(state.range, state.timeStep) <= MAX_PERIODS
+  );
 }
 
 export function render(state) {
@@ -105,6 +109,12 @@ export function pane(state) {
   if (state.timeStep === 'daily') {
     children.push(
       el('p', { class: 'caveat' }, 'Daily values make long tables. Monthly is usually enough to see trends.')
+    );
+  }
+
+  if (periods > MAX_PERIODS) {
+    children.push(
+      el('p', { class: 'run-error' }, `That is over ${MAX_PERIODS.toLocaleString('en')} values. Choose monthly, or fewer years.`)
     );
   }
 

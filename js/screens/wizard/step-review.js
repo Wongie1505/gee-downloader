@@ -3,6 +3,7 @@ import { countPeriods } from '../../core/periods.js';
 import { setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard, factList } from '../../ui/info.js';
+import { runCard } from '../../ui/run-card.js';
 
 export const label = 'Review';
 export const title = 'Ready to download?';
@@ -97,9 +98,23 @@ export function pane(state) {
   rows.push(['Files', `${files} ${files === 1 ? 'file' : 'files'}`]);
   rows.push(['Saved to', `My Drive / ${state.folderName}`]);
 
-  return infoCard(
+  const summary = infoCard(
     'What will be created',
     factList(rows),
     el('p', { class: 'caveat' }, 'Earth Engine queues the job, so files can take a few minutes to appear in Drive.')
   );
+
+  const dataset = getDataset(state.datasetId);
+  const stack = [];
+  const latest = state.tasks[state.tasks.length - 1];
+
+  if (latest) {
+    stack.push(runCard(latest));
+  }
+
+  if (dataset && !dataset.downloadReady && !(state.user && state.user.demo)) {
+    stack.push(infoCard('Not available yet', el('p', { class: 'muted' }, 'Downloads for this dataset are coming soon. Rainfall works now.')));
+  }
+
+  return el('div', { class: 'pane-stack' }, ...stack, summary);
 }

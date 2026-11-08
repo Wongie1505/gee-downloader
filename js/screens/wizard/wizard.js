@@ -1,6 +1,7 @@
 import { getState, emit, on } from '../../state.js';
 import { getDataset } from '../../data/catalog.js';
 import { el } from '../../ui/dom.js';
+import { startDownload, isActive } from '../../core/download.js';
 import * as stepData from './step-data.js';
 import * as stepArea from './step-area.js';
 import * as stepTime from './step-time.js';
@@ -92,8 +93,13 @@ function progressItem(id, i, index) {
 }
 
 function renderFooter(flow, index) {
+  const state = getState();
   const isLast = index === flow.length - 1;
-  const canGo = STEPS[current].isValid(getState());
+  const busy = isLast && isRunning();
+
+  // Demo mode may press Download on any dataset, it only shows a note
+  const ready = !isLast || isDownloadable(state);
+  const canGo = STEPS[current].isValid(state) && !busy && ready;
 
   const back = el(
     'button',
@@ -114,7 +120,7 @@ function renderFooter(flow, index) {
       disabled: !canGo,
       onclick: isLast ? requestDownload : () => move(1)
     },
-    isLast ? 'Download' : 'Next'
+    isLast ? (busy ? 'Exporting' : 'Download') : 'Next'
   );
 
   footerEl.replaceChildren(back, next);
@@ -136,9 +142,7 @@ function requestDownload() {
     return;
   }
 
-  // Phase 4 listens for this event and starts the exports
-  emit('download:requested', getState());
-  console.log('download requested', getState());
+  startDownload();
 }
 
 function showDemoNotice() {
@@ -153,4 +157,17 @@ function showDemoNotice() {
       'Demo mode: nothing is downloaded. Log in to run a real export.'
     )
   );
+}
+
+function isRunning() {
+  const tasks = getState().tasks;
+  const latest = tasks[tasks.length - 1];
+
+  return Boolean(latest && isActive(latest));
+}
+
+function isDownloadable(state) {
+  const dataset = getDataset(state.datasetId);
+
+  return Boolean(state.user && state.user.demo) || Boolean(dataset && dataset.downloadReady);
 }

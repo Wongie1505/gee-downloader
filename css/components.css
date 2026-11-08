@@ -439,3 +439,44 @@ a:not(.btn) {
   color: var(--danger);
   border-color: var(--danger);
 }
+
+/* ---- Export status ---- */
+.pane-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bar {
+  height: 8px;
+  margin: 12px 0 8px;
+  overflow: hidden;
+  background: var(--line);
+  border-radius: 999px;
+}
+
+.bar-fill {
+  height: 100%;
+  background: var(--contour);
+}
+
+.run-hint {
+  font-size: 13px;
+}
+
+.run-error {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: var(--danger);
+  border: 1px solid var(--danger);
+  border-radius: var(--r-item);
+}
+
+.run-succeeded {
+  border-color: var(--contour);
+}
+
+.check input:disabled + span {
+  color: var(--muted);
+}

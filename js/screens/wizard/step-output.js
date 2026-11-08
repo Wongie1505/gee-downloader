@@ -9,8 +9,8 @@ export const title = 'What should you get back?';
 export const hint = 'Tick one or both.';
 
 const OPTIONS = [
-  { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.' },
-  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'Opens in QGIS or ArcGIS.' }
+  { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.', ready: true },
+  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'Opens in QGIS or ArcGIS.', ready: false }
 ];
 
 export function isValid(state) {
@@ -24,6 +24,7 @@ export function render(state) {
     const box = el('input', {
       type: 'checkbox',
       checked: state.outputs.includes(option.id),
+      disabled: !option.ready,
       onchange: () => toggle(option.id, box.checked)
     });
 
@@ -32,7 +33,7 @@ export function render(state) {
         'label',
         { class: 'check' },
         box,
-        el('span', {}, el('strong', {}, option.name), el('small', {}, option.note))
+        el('span', {}, el('strong', {}, option.name), el('small', {}, option.ready ? option.note : 'Coming soon.'))
       )
     );
   });

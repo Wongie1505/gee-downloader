@@ -25,7 +25,12 @@ export function render(state) {
         onclick: () => select(dataset, list)
       },
       el('span', { class: 'layer-dot' }),
-      el('span', { class: 'layer-name' }, dataset.label),
+      el(
+        'span',
+        { class: 'layer-name' },
+        dataset.label,
+        dataset.downloadReady ? null : el('small', { class: 'soon' }, ' soon')
+      ),
       el('span', { class: 'layer-blurb' }, dataset.blurb),
       el('code', {}, dataset.collection)
     );

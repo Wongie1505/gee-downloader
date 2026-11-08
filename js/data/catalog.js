@@ -5,6 +5,8 @@ const thisYear = new Date().getFullYear();
 export const datasets = [
   {
     id: 'chirps',
+    downloadReady: true,
+    valueColumn: 'rainfall_mm',
     slug: 'rainfall',
     label: 'Rainfall',
     blurb: 'Daily rainfall since 1981. Pixels are about 5.5 km wide.',
@@ -27,6 +29,7 @@ export const datasets = [
   },
   {
     id: 'modis-ndvi',
+    downloadReady: false,
     slug: 'ndvi',
     label: 'Vegetation (NDVI)',
     blurb: 'How green the land is, every 16 days at 250 m.',
@@ -48,6 +51,7 @@ export const datasets = [
   },
   {
     id: 'worldcover',
+    downloadReady: false,
     slug: 'landcover_2021',
     label: 'Land cover 2021',
     blurb: 'One 10 m map for 2021 (ESA WorldCover).',
@@ -72,6 +76,7 @@ export const datasets = [
   },
   {
     id: 'modis-lc',
+    downloadReady: false,
     slug: 'landcover_yearly',
     label: 'Land cover by year',
     blurb: 'Yearly maps from 2001 to 2024 at 500 m (MODIS).',
@@ -96,6 +101,7 @@ export const datasets = [
   },
   {
     id: 'srtm',
+    downloadReady: false,
     slug: 'elevation',
     label: 'Elevation',
     blurb: 'Height above sea level at 30 m (SRTM).',
