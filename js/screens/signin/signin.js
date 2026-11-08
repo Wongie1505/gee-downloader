@@ -14,6 +14,7 @@ import {
   markHelpSeen,
   friendlyError
 } from '../../core/auth.js';
+import { startDemo, endDemo, demoWasActive } from '../../core/demo.js';
 
 const CHECK_EVERY_MS = 60 * 1000;
 
@@ -40,6 +41,8 @@ export function initSignIn() {
   });
 
   document.getElementById('logout').addEventListener('click', handleLogout);
+
+  document.getElementById('demo-btn').addEventListener('click', handleDemo);
 
   // The router asks for this when a signed-out user opens the app
   on('auth:required', () => openSignIn());
@@ -148,7 +151,15 @@ async function handleSubmit() {
   }
 }
 
+// View the app flow without logging in. No Google, no Earth Engine, no downloads.
+function handleDemo() {
+  startDemo();
+  setState({ user: { projectId: 'demo', demo: true } });
+  window.location.hash = '#app';
+}
+
 function handleLogout() {
+  endDemo();
   signOut();
   setState({ user: null });
   window.location.hash = '#home';
@@ -160,6 +171,12 @@ function handleLogout() {
 // ---- Restore a login from this tab after a refresh ----
 
 export async function tryRestoreSession() {
+  // Demo mode comes back after a refresh
+  if (demoWasActive()) {
+    setState({ user: { projectId: 'demo', demo: true } });
+    return;
+  }
+
   const projectId = await restoreSession();
 
   if (projectId) {
@@ -193,10 +210,13 @@ function expire() {
 
 function renderHeader() {
   const user = getState().user;
+  const pill = document.getElementById('user-pill');
 
   document.body.dataset.auth = user ? 'in' : 'out';
-  document.getElementById('user-pill').textContent = user ? user.projectId : '';
-  document.getElementById('user-pill').hidden = !user;
+  pill.textContent = user ? user.projectId : '';
+  pill.hidden = !user;
+  pill.classList.toggle('demo', Boolean(user && user.demo));
   document.getElementById('logout').hidden = !user;
-  document.querySelector('.nav-login').textContent = user ? 'Open app' : 'Log in';
+  document.getElementById('login-link').textContent = user ? 'Open app' : 'Log in';
+  document.getElementById('demo-btn').hidden = Boolean(user);
 }

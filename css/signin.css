@@ -103,3 +103,20 @@
   border: 1px solid var(--line);
   border-radius: 999px;
 }
+
+/* Demo mode is obvious on purpose, so it is never mistaken for a real login */
+.user-pill.demo {
+  color: #6b5200;
+  background: #fff4d6;
+  border-color: #e0b84a;
+}
+
+.demo-note {
+  margin: 16px 0 0;
+  padding: 8px 10px;
+  font-size: 14px;
+  color: #6b5200;
+  background: #fff4d6;
+  border: 1px solid #e0b84a;
+  border-radius: var(--r-item);
+}

@@ -130,7 +130,27 @@ function move(delta) {
 }
 
 function requestDownload() {
+  // Demo mode has no login, so it can only show the flow
+  if (getState().user && getState().user.demo) {
+    showDemoNotice();
+    return;
+  }
+
   // Phase 4 listens for this event and starts the exports
   emit('download:requested', getState());
   console.log('download requested', getState());
+}
+
+function showDemoNotice() {
+  if (bodyEl.querySelector('.demo-note')) {
+    return;
+  }
+
+  bodyEl.append(
+    el(
+      'p',
+      { class: 'demo-note', role: 'status' },
+      'Demo mode: nothing is downloaded. Log in to run a real export.'
+    )
+  );
 }

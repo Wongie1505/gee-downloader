@@ -33,7 +33,9 @@
       <a href="#home" data-nav="home">Home</a>
       <a href="#about" data-nav="about">About</a>
       <!-- Shown on the home screen only. Phase 2 turns this into real sign-in -->
-      <a class="btn btn-primary nav-login" href="#app">Log in</a>
+      <a id="login-link" class="btn btn-primary nav-login" href="#app">Log in</a>
+      <!-- Demo: view the app flow without logging in. Not connected to Google or Earth Engine -->
+      <button id="demo-btn" type="button" class="btn btn-ghost btn-small nav-login" title="View the app without logging in. Nothing is downloaded.">Demo</button>
       <span id="user-pill" class="user-pill" title="Earth Engine project" hidden></span>
       <button id="logout" type="button" class="btn btn-ghost btn-small" hidden>Log out</button>
     </nav>
