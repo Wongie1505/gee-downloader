@@ -160,10 +160,7 @@ function showDemoNotice() {
 }
 
 function isRunning() {
-  const tasks = getState().tasks;
-  const latest = tasks[tasks.length - 1];
-
-  return Boolean(latest && isActive(latest));
+  return getState().tasks.some(isActive);
 }
 
 function isDownloadable(state) {

@@ -3,6 +3,9 @@
 // Thrown when Google says the login is no longer valid
 export class SessionError extends Error {}
 
+// Thrown when the request never reached Google (wifi dropped, offline)
+export class NetworkError extends Error {}
+
 function errorText(data, status) {
   const message = data && data.error && data.error.message;
 
@@ -11,14 +14,20 @@ function errorText(data, status) {
 
 // Returns the long-running operation, whose name is used to check progress
 export async function postExport(url, body) {
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      Authorization: ee.data.getAuthToken(),
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
+  let response = null;
+
+  try {
+    response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        Authorization: ee.data.getAuthToken(),
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(body)
+    });
+  } catch (error) {
+    throw new NetworkError('Could not reach Google. Check your connection and press Download again.');
+  }
 
   let data = {};
 

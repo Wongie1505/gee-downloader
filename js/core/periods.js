@@ -45,12 +45,19 @@ export const MAX_PERIODS = 5000;
 const UNITS = { daily: 'day', monthly: 'month', yearly: 'year' };
 const LABEL_FORMATS = { daily: 'YYYY-MM-dd', monthly: 'YYYY-MM', yearly: 'YYYY' };
 
+// Band names may only hold letters, digits and underscores
+const BAND_FORMATS = { daily: 'YYYY_MM_dd', monthly: 'YYYY_MM', yearly: 'YYYY' };
+
+// A map file holds one band per period, and too many bands make it fail
+export const MAX_BANDS = 400;
+
 // Everything Earth Engine needs to loop over the periods on its side
 export function periodSpec(range, timeStep) {
   return {
     startDate: `${range.start}-01-01`,
     unit: UNITS[timeStep],
     format: LABEL_FORMATS[timeStep],
+    bandFormat: BAND_FORMATS[timeStep],
     count: countPeriods(range, timeStep)
   };
 }

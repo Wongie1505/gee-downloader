@@ -44,3 +44,34 @@ export function areaKm2(geometry) {
 export function formatNumber(value) {
   return Math.round(value).toLocaleString('en');
 }
+
+// Walk any polygon coordinates and find the rectangle around them
+export function bboxOf(geometry) {
+  const box = { west: 180, south: 90, east: -180, north: -90 };
+
+  function visit(node) {
+    if (typeof node[0] === 'number') {
+      box.west = Math.min(box.west, node[0]);
+      box.east = Math.max(box.east, node[0]);
+      box.south = Math.min(box.south, node[1]);
+      box.north = Math.max(box.north, node[1]);
+      return;
+    }
+
+    node.forEach(visit);
+  }
+
+  visit(geometry.coordinates);
+
+  return box;
+}
+
+// How many pixels fit in the rectangle around the area at this pixel size
+export function estimatePixels(geometry, scaleMeters) {
+  const box = bboxOf(geometry);
+  const midLat = (box.south + box.north) / 2;
+  const widthM = (box.east - box.west) * 111320 * Math.cos(toRad(midLat));
+  const heightM = (box.north - box.south) * 110574;
+
+  return Math.ceil(widthM / scaleMeters) * Math.ceil(heightM / scaleMeters);
+}

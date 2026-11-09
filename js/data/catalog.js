@@ -1,4 +1,10 @@
-// Pure data, no DOM. Verify every ID in the EE catalog before Phase 4.
+// Pure data, no DOM. Verify every ID in the EE catalog before relying on it.
+//
+// exports:       which outputs the engine can really produce for this dataset
+// sourceKind:    'collection' (default) or 'image' for a single image
+// bandPrefix:    start of each band name in a multiband map file
+// nativeWgs84:   false means the data is in another projection and is
+//                converted to plain lat/lon on export
 
 const thisYear = new Date().getFullYear();
 
@@ -6,7 +12,9 @@ export const datasets = [
   {
     id: 'chirps',
     downloadReady: true,
+    exports: { csv: true, geotiff: true },
     valueColumn: 'rainfall_mm',
+    bandPrefix: 'rainfall_mm',
     slug: 'rainfall',
     label: 'Rainfall',
     blurb: 'Daily rainfall since 1981. Pixels are about 5.5 km wide.',
@@ -30,6 +38,9 @@ export const datasets = [
   {
     id: 'modis-ndvi',
     downloadReady: false,
+    exports: { csv: false, geotiff: false },
+    bandPrefix: 'ndvi',
+    nativeWgs84: false,
     slug: 'ndvi',
     label: 'Vegetation (NDVI)',
     blurb: 'How green the land is, every 16 days at 250 m.',
@@ -51,7 +62,9 @@ export const datasets = [
   },
   {
     id: 'worldcover',
-    downloadReady: false,
+    downloadReady: true,
+    exports: { csv: false, geotiff: true },
+    sourceKind: 'collection',
     slug: 'landcover_2021',
     label: 'Land cover 2021',
     blurb: 'One 10 m map for 2021 (ESA WorldCover).',
@@ -62,7 +75,9 @@ export const datasets = [
     steps: [],
     years: null,
     outputChoice: false,
-    outputs: ['geotiff', 'csv'],
+
+    // The area table (csv) arrives in a later update
+    outputs: ['geotiff'],
 
     source: 'ESA WorldCover',
     coverage: '2021, one map',
@@ -76,18 +91,21 @@ export const datasets = [
   },
   {
     id: 'modis-lc',
-    downloadReady: false,
+    downloadReady: true,
+    exports: { csv: false, geotiff: true },
+    bandPrefix: 'landcover',
+    nativeWgs84: false,
     slug: 'landcover_yearly',
     label: 'Land cover by year',
     blurb: 'Yearly maps from 2001 to 2024 at 500 m (MODIS).',
     collection: 'MODIS/061/MCD12Q1',
     band: 'LC_Type1',
     scale: 500,
-    reducer: null,
+    reducer: 'first',
     steps: ['yearly'],
     years: [2001, 2024],
     outputChoice: false,
-    outputs: ['geotiff', 'csv'],
+    outputs: ['geotiff'],
 
     source: 'MODIS, NASA',
     coverage: '2001 to 2024',
@@ -101,7 +119,9 @@ export const datasets = [
   },
   {
     id: 'srtm',
-    downloadReady: false,
+    downloadReady: true,
+    exports: { csv: false, geotiff: true },
+    sourceKind: 'image',
     slug: 'elevation',
     label: 'Elevation',
     blurb: 'Height above sea level at 30 m (SRTM).',

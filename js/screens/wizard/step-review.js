@@ -106,10 +106,13 @@ export function pane(state) {
 
   const dataset = getDataset(state.datasetId);
   const stack = [];
-  const latest = state.tasks[state.tasks.length - 1];
+  const lastTask = state.tasks[state.tasks.length - 1];
 
-  if (latest) {
-    stack.push(runCard(latest));
+  // Every output of the latest download gets its own card
+  if (lastTask) {
+    state.tasks
+      .filter((task) => task.batch === lastTask.batch)
+      .forEach((task) => stack.push(runCard(task)));
   }
 
   if (dataset && !dataset.downloadReady && !(state.user && state.user.demo)) {

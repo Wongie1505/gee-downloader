@@ -31,7 +31,7 @@ function progressBar(task) {
 export function runCard(task) {
   const children = [
     el('h3', { class: 'info-title' }, TITLES[task.state] || task.state),
-    el('p', { class: 'muted' }, `${task.datasetLabel}, saving to ${task.name}`)
+    el('p', { class: 'muted' }, `${task.datasetLabel}, ${task.kindLabel || 'Table (CSV)'}, saving to ${task.name}`)
   ];
 
   if (['STARTING', 'PENDING', 'RUNNING'].includes(task.state)) {

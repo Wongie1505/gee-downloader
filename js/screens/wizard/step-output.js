@@ -1,5 +1,5 @@
 import { getDataset } from '../../data/catalog.js';
-import { sampleLabels } from '../../core/periods.js';
+import { sampleLabels, countPeriods, MAX_BANDS } from '../../core/periods.js';
 import { getState, setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard } from '../../ui/info.js';
@@ -9,22 +9,37 @@ export const title = 'What should you get back?';
 export const hint = 'Tick one or both.';
 
 const OPTIONS = [
-  { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.', ready: true },
-  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'Opens in QGIS or ArcGIS.', ready: false }
+  { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.' },
+  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'One band per period. Opens in QGIS or ArcGIS.' }
 ];
 
+// A map file holds one band per period, so a long range does not fit
+function tooManyBands(state) {
+  const dataset = getDataset(state.datasetId);
+
+  return (
+    state.outputs.includes('geotiff') &&
+    Boolean(dataset.years) &&
+    Boolean(state.range) &&
+    countPeriods(state.range, state.timeStep) > MAX_BANDS
+  );
+}
+
 export function isValid(state) {
-  return state.outputs.length > 0;
+  return state.outputs.length > 0 && !tooManyBands(state);
 }
 
 export function render(state) {
+  const dataset = getDataset(state.datasetId);
   const list = el('div', { class: 'stack' });
 
   OPTIONS.forEach((option) => {
+    // An output is only offered when the engine can really make it
+    const ready = Boolean(dataset.exports && dataset.exports[option.id]);
     const box = el('input', {
       type: 'checkbox',
       checked: state.outputs.includes(option.id),
-      disabled: !option.ready,
+      disabled: !ready,
       onchange: () => toggle(option.id, box.checked)
     });
 
@@ -33,7 +48,7 @@ export function render(state) {
         'label',
         { class: 'check' },
         box,
-        el('span', {}, el('strong', {}, option.name), el('small', {}, option.ready ? option.note : 'Coming soon.'))
+        el('span', {}, el('strong', {}, option.name), el('small', {}, ready ? option.note : 'Coming soon.'))
       )
     );
   });
@@ -63,13 +78,22 @@ export function pane(state) {
   }
 
   if (state.outputs.includes('geotiff')) {
-    children.push(el('h4', { class: 'info-sub' }, 'Map file (GeoTIFF)'), el('p', { class: 'muted' }, bandNote(dataset, state)));
+    children.push(
+      el('h4', { class: 'info-sub' }, 'Map file (GeoTIFF)'),
+      el('p', { class: 'muted' }, bandNote(dataset, state))
+    );
   }
 
   if (children.length === 0) {
     children.push(el('p', { class: 'muted' }, 'Tick an output to see what the file looks like.'));
   } else {
     children.push(el('p', { class: 'caveat muted' }, 'Example layout. The numbers are illustrative.'));
+  }
+
+  if (tooManyBands(state)) {
+    children.push(
+      el('p', { class: 'run-error' }, `A map file holds up to ${MAX_BANDS} values. Choose fewer periods, or table only.`)
+    );
   }
 
   return infoCard('What you will get', ...children);
@@ -98,5 +122,5 @@ function bandNote(dataset, state) {
 
   const [first] = sampleLabels(state.range, state.timeStep, 1);
 
-  return `One file with one band per period, named like ${first}.`;
+  return `One file with one band per period, named like ${dataset.bandPrefix}_${first.replace(/-/g, '_')}. It covers the rectangle around your area.`;
 }
