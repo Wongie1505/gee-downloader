@@ -77,7 +77,7 @@ function syncPreview(map, state) {
   }
 
   if (wanted) {
-    previewLayer = L.imageOverlay(`assets/previews/${wanted}.png`, MALAWI_BOUNDS, {
+    previewLayer = L.imageOverlay(`js/datasets/${wanted}/preview.png`, MALAWI_BOUNDS, {
       opacity: 0.9
     });
 
