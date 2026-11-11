@@ -36,7 +36,7 @@ function mapsAsFiles(state, dataset) {
 
 function outputName(id, state, dataset) {
   if (id === 'csv') {
-    return 'Table (CSV)';
+    return dataset.legend ? 'Area table (CSV)' : 'Table (CSV)';
   }
 
   return mapsAsFiles(state, dataset) ? 'Map files (GeoTIFF), one per period' : 'Map file (GeoTIFF)';

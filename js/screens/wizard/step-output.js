@@ -1,176 +1,166 @@
 import { getDataset } from '../../data/catalog.js';
-import { sampleLabels, countPeriods, MAX_BANDS, MAX_FILES } from '../../core/periods.js';
-import { getState, setState } from '../../state.js';
+import { countPeriods } from '../../core/periods.js';
+import { FOLDER_PREFIX } from '../../core/naming.js';
+import { setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
-import { infoCard } from '../../ui/info.js';
+import { infoCard, factList } from '../../ui/info.js';
+import { batchCards } from '../../ui/run-card.js';
+import { retryFailed } from '../../core/download.js';
 
-export const label = 'Output';
-export const title = 'What should you get back?';
-export const hint = 'Tick one or both.';
+export const label = 'Review';
+export const title = 'Ready to download?';
+export const hint = 'Check the summary and name your Drive folder.';
 
-const OPTIONS = [
-  { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.' },
-  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'Opens in QGIS or ArcGIS.' }
-];
-
-// How a map for many dates is saved
-const LAYOUTS = [
-  { id: 'separate', name: 'One file per period', note: 'A separate map for each date. Easier to open one at a time, and you see which ones failed.' },
-  { id: 'multiband', name: 'One file with all periods', note: 'A single file with one band per period.' }
-];
-
-// Only date series have a layout choice, one-off maps are a single file
-function showLayout(state, dataset) {
-  return state.outputs.includes('geotiff') && Boolean(dataset.years);
-}
-
-// Separate files are one task each, a multiband file is one band each
-function limitFor(state) {
-  return state.layout === 'separate' ? MAX_FILES : MAX_BANDS;
-}
-
-function tooMany(state) {
-  const dataset = getDataset(state.datasetId);
-
-  return (
-    showLayout(state, dataset) &&
-    Boolean(state.range) &&
-    countPeriods(state.range, state.timeStep) > limitFor(state)
-  );
-}
-
-function limitMessage(state) {
-  if (state.layout === 'separate') {
-    return `Separate files are limited to ${MAX_FILES} per download. Choose monthly steps, fewer years, or the table.`;
-  }
-
-  return `A map file holds up to ${MAX_BANDS} values. Choose fewer periods, or table only.`;
-}
+const FOLDER_PATTERN = /^[A-Za-z0-9_-]+$/;
 
 export function isValid(state) {
-  return state.outputs.length > 0 && !tooMany(state);
+  return FOLDER_PATTERN.test(state.folderName);
+}
+
+// Letters and digits only, so the default folder name always passes the check
+function slug(text) {
+  const clean = text.toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '');
+
+  return clean.slice(0, 30) || 'area';
+}
+
+// rainfall_zomba -> Rainfall_Zomba
+function titleCase(text) {
+  return text.replace(/(^|_)([a-z])/g, (match, lead, letter) => lead + letter.toUpperCase());
+}
+
+// Date series saved as separate maps become one file per period
+function mapsAsFiles(state, dataset) {
+  return state.outputs.includes('geotiff') && Boolean(dataset.years) && state.layout === 'separate';
+}
+
+function outputName(id, state, dataset) {
+  if (id === 'csv') {
+    return dataset.legend ? 'Area table (CSV)' : 'Table (CSV)';
+  }
+
+  return mapsAsFiles(state, dataset) ? 'Map files (GeoTIFF), one per period' : 'Map file (GeoTIFF)';
+}
+
+// How many files the download creates. Periods without data are skipped, so it can be less.
+function fileCount(state, dataset) {
+  let files = 0;
+
+  state.outputs.forEach((id) => {
+    files += id === 'geotiff' && mapsAsFiles(state, dataset) ? countPeriods(state.range, state.timeStep) : 1;
+  });
+
+  return files + (hasLegend(state, dataset) ? 1 : 0);
+}
+
+// Land cover maps come with a legend file that the user does not pick
+function hasLegend(state, dataset) {
+  return Boolean(dataset && dataset.legend && state.outputs.includes('geotiff'));
+}
+
+// Default folder name like GEE-Downloader_Rainfall_2023-2026-Dedza
+export function suggestFolder(state, dataset) {
+  const place = [];
+
+  if (state.range) {
+    const { start, end } = state.range;
+
+    place.push(start === end ? `${start}` : `${start}-${end}`);
+  }
+
+  place.push(titleCase(slug(state.area.name)));
+
+  return `${FOLDER_PREFIX}${titleCase(dataset.slug)}_${place.join('-')}`;
 }
 
 export function render(state) {
   const dataset = getDataset(state.datasetId);
-  const list = el('div', { class: 'stack' });
-  const layout = layoutOptions(state);
+  const suggestion = suggestFolder(state, dataset);
 
-  layout.hidden = !showLayout(state, dataset);
+  // Prefill on every arrival, the user can still edit it
+  setState({ folderName: suggestion });
 
-  OPTIONS.forEach((option) => {
-    // An output is only offered when the engine can really make it
-    const ready = Boolean(dataset.exports && dataset.exports[option.id]);
-    const box = el('input', {
-      type: 'checkbox',
-      checked: state.outputs.includes(option.id),
-      disabled: !ready,
-      onchange: () => {
-        toggle(option.id, box.checked);
-        layout.hidden = !showLayout(getState(), dataset);
-      }
-    });
+  const rows = [
+    ['Data', dataset.label],
+    ['Area', state.area.name]
+  ];
 
-    list.append(
-      el(
-        'label',
-        { class: 'check' },
-        box,
-        el('span', {}, el('strong', {}, option.name), el('small', {}, ready ? option.note : 'Coming soon.'))
-      )
-    );
-  });
-
-  return el('div', { class: 'stack' }, list, layout);
-}
-
-// Radio buttons for the layout, shown only when a date series is chosen as a map
-function layoutOptions(state) {
-  const box = el('div', { class: 'stack' }, el('h4', { class: 'info-sub' }, 'How should map files be saved?'));
-
-  LAYOUTS.forEach((option) => {
-    const radio = el('input', {
-      type: 'radio',
-      name: 'layout',
-      checked: state.layout === option.id,
-      onchange: () => setState({ layout: option.id })
-    });
-
-    box.append(
-      el('label', { class: 'check' }, radio, el('span', {}, el('strong', {}, option.name), el('small', {}, option.note)))
-    );
-  });
-
-  return box;
-}
-
-function toggle(id, on) {
-  const outputs = new Set(getState().outputs);
-
-  if (on) {
-    outputs.add(id);
-  } else {
-    outputs.delete(id);
+  if (state.range) {
+    rows.push(['Period', `${state.range.start} to ${state.range.end}, ${state.timeStep}`]);
   }
 
-  setState({ outputs: [...outputs] });
+  const outputNames = state.outputs.map((id) => outputName(id, state, dataset));
+
+  if (hasLegend(state, dataset)) {
+    outputNames.push('Legend (CSV)');
+  }
+
+  rows.push(['Output', outputNames.join(' and ')]);
+
+  const summary = el('dl', { class: 'summary' });
+
+  rows.forEach(([term, value]) => {
+    summary.append(el('dt', {}, term), el('dd', {}, value));
+  });
+
+  const input = el('input', {
+    type: 'text',
+    id: 'folder',
+    value: suggestion,
+    maxlength: 100
+  });
+
+  input.addEventListener('input', () => {
+    const name = input.value.trim();
+
+    input.classList.toggle('invalid', !FOLDER_PATTERN.test(name));
+    setState({ folderName: name });
+  });
+
+  return el(
+    'div',
+    {},
+    summary,
+    el(
+      'div',
+      { class: 'field' },
+      el('label', { for: 'folder' }, 'Drive folder name'),
+      input,
+      el('small', { class: 'field-note' }, 'Letters, numbers, dash and underscore only. If this name already exists in your Drive, the files go into that folder.')
+    )
+  );
 }
 
-// Show what each chosen file will look like
+// Plain summary of what will be created and where it lands
 export function pane(state) {
   const dataset = getDataset(state.datasetId);
-  const children = [];
+  const files = state.outputs.length > 0 && state.area ? fileCount(state, dataset) : 0;
+  const rows = [['Area', state.area ? state.area.name : 'Not chosen']];
 
-  if (state.outputs.includes('csv') && dataset.sample) {
-    children.push(el('h4', { class: 'info-sub' }, 'Table (CSV)'), sampleTable(dataset, state));
+  if (state.range) {
+    rows.push(['Values', countPeriods(state.range, state.timeStep).toLocaleString('en')]);
   }
 
-  if (state.outputs.includes('geotiff')) {
-    children.push(
-      el('h4', { class: 'info-sub' }, 'Map file (GeoTIFF)'),
-      el('p', { class: 'muted' }, bandNote(dataset, state))
-    );
-  }
+  rows.push(['Files', `${mapsAsFiles(state, dataset) ? 'Up to ' : ''}${files} ${files === 1 ? 'file' : 'files'}`]);
+  rows.push(['Saved to', `My Drive / ${state.folderName}`]);
 
-  if (children.length === 0) {
-    children.push(el('p', { class: 'muted' }, 'Tick an output to see what the file looks like.'));
-  } else {
-    children.push(el('p', { class: 'caveat muted' }, 'Example layout. The numbers are illustrative.'));
-  }
-
-  if (tooMany(state)) {
-    children.push(el('p', { class: 'run-error' }, limitMessage(state)));
-  }
-
-  return infoCard('What you will get', ...children);
-}
-
-function sampleTable(dataset, state) {
-  const { header, values, rows } = dataset.sample;
-
-  // Series tables use real period labels, class tables are fixed
-  const body = rows || sampleLabels(state.range, state.timeStep).map((label, i) => [label, values[i]]);
-
-  const table = el('table', { class: 'sample-table' });
-
-  table.append(
-    el('thead', {}, el('tr', {}, ...header.map((name) => el('th', {}, name)))),
-    el('tbody', {}, ...body.map((row) => el('tr', {}, ...row.map((cell) => el('td', {}, String(cell))))))
+  const summary = infoCard(
+    'What will be created',
+    factList(rows),
+    el('p', { class: 'caveat' }, 'Earth Engine queues the job, so files can take a few minutes to appear in Drive.')
   );
 
-  return table;
-}
+  const stack = [];
+  const lastTask = state.tasks[state.tasks.length - 1];
 
-function bandNote(dataset, state) {
-  if (!dataset.years) {
-    return 'One file with a single band.';
+  // The latest download: one card per output, and one grouped card for a date series
+  if (lastTask) {
+    stack.push(...batchCards(state.tasks.filter((task) => task.batch === lastTask.batch), retryFailed));
   }
 
-  const [first] = sampleLabels(state.range, state.timeStep, 1);
-
-  if (state.layout === 'separate') {
-    return `One file per period, with the period at the end of its name, like ..._${first}.tif. Each covers the rectangle around your area.`;
+  if (dataset && !dataset.downloadReady && !(state.user && state.user.demo)) {
+    stack.push(infoCard('Not available yet', el('p', { class: 'muted' }, 'Downloads for this dataset are coming soon. Rainfall works now.')));
   }
 
-  return `One file with one band per period, named like ${dataset.bandPrefix}_${first.replace(/-/g, '_')}. It covers the rectangle around your area.`;
+  return el('div', { class: 'pane-stack' }, ...stack, summary);
 }

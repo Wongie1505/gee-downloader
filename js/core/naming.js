@@ -29,5 +29,9 @@ export function driveFileName(kind, folderName, label) {
     return `${prefix}_legend.csv`;
   }
 
+  if (kind === 'areas') {
+    return `${prefix}_areas.csv`;
+  }
+
   return `${prefix}.csv`;
 }

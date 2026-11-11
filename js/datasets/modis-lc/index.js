@@ -5,7 +5,7 @@ import legend from './legend.js';
 export default {
   id: 'modis-lc',
   downloadReady: true,
-  exports: { csv: false, geotiff: true },
+  exports: { csv: true, geotiff: true },
   bandPrefix: 'landcover',
   nativeWgs84: false,
   slug: 'landcover_yearly',
@@ -17,11 +17,12 @@ export default {
   reducer: 'first',
   steps: ['yearly'],
   years: [2001, 2024],
-  outputChoice: false,
+  outputChoice: true,
   outputs: ['geotiff'],
 
   // Exported as a CSV next to the map, so the class codes can be read
   legend,
+  csvNote: 'Area of each land cover class in km2, one row per class and year, for the exact shape of your area.',
 
   source: 'MODIS, NASA',
   coverage: '2001 to 2024',
@@ -29,7 +30,7 @@ export default {
   unit: 'Land cover class codes',
   caveat: 'Pixels are 500 m wide, so it suits districts and regions better than small sites.',
   sample: {
-    header: ['class', 'area_km2'],
-    rows: [['Cropland', '1204.5'], ['Grassland', '830.2'], ['Built-up', '38.1']]
+    header: ['year', 'class_code', 'class_name', 'area_km2'],
+    rows: [['2001', '12', 'Croplands', '1204.5'], ['2001', '10', 'Grasslands', '830.2'], ['2001', '13', 'Urban and built-up lands', '38.1']]
   }
 };

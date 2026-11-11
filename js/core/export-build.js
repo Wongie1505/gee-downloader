@@ -5,7 +5,7 @@ import { periodSpec, MAX_BANDS } from './periods.js';
 import { estimatePixels, formatNumber } from './geo.js';
 import { filePrefix } from './naming.js';
 
-const ENDPOINT = 'https://earthengine.googleapis.com/v1';
+export const ENDPOINT = 'https://earthengine.googleapis.com/v1';
 
 // Pixels times bands above this is too big to export in one file
 const MAX_RASTER_VALUES = 500e6;
@@ -98,7 +98,7 @@ export function buildTableRequest({ dataset, area, range, timeStep, folderName, 
 
 // ---- Map file: one band per period, or a single band for one-off maps ----
 
-function staticImage(dataset) {
+export function staticImage(dataset) {
   if (dataset.sourceKind === 'image') {
     return ee.Image(dataset.collection).select(dataset.band);
   }

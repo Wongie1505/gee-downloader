@@ -5,6 +5,7 @@ import { getDataset } from '../data/catalog.js';
 import { buildTableRequest, buildImageRequest, buildPeriodRequest, buildLegendRequest, RequestError } from './export-build.js';
 import { postExport, SessionError, NetworkError } from './export-run.js';
 import { watchGroup } from './task-monitor.js';
+import { buildAreaRequest } from './area-table.js';
 import { periodsWithData } from './period-check.js';
 import { periodSpec, periodLabels, MAX_FILES } from './periods.js';
 import { driveFileName } from './naming.js';
@@ -19,7 +20,8 @@ const KINDS = {
   csv: { label: 'Table (CSV)', build: buildTableRequest },
   geotiff: { label: 'Map file (GeoTIFF)', build: buildImageRequest },
   period: { label: 'Map file (GeoTIFF)', build: buildPeriodRequest },
-  legend: { label: 'Legend (CSV)', build: buildLegendRequest }
+  legend: { label: 'Legend (CSV)', build: buildLegendRequest },
+  areas: { label: 'Area table (CSV)', build: buildAreaRequest }
 };
 
 // Tests shorten these so they do not wait seconds per check
@@ -239,6 +241,9 @@ export async function startDownload() {
     kinds.push('legend');
   }
 
+  // For land cover the table is not a time series but the area of each class
+  const jobs = kinds.map((kind) => (kind === 'csv' && dataset.legend ? 'areas' : kind));
+
   // Everything this download needs, kept with its tasks so a retry sends the same thing
   const context = {
     area: state.area,
@@ -248,10 +253,10 @@ export async function startDownload() {
     projectId: state.user.projectId
   };
 
-  const mapsAsFiles = kinds.includes('geotiff') && Boolean(dataset.years) && state.layout === 'separate';
+  const mapsAsFiles = jobs.includes('geotiff') && Boolean(dataset.years) && state.layout === 'separate';
 
   const batch = `batch-${Date.now()}`;
-  const plain = kinds
+  const plain = jobs
     .filter((kind) => !(mapsAsFiles && kind === 'geotiff'))
     .map((kind) => makeTask(batch, kind, context, dataset));
 
