@@ -32,7 +32,8 @@ export function getFlow(datasetId) {
     flow.push('time');
   }
 
-  if (!dataset || dataset.outputChoice) {
+  // Needed for several outputs, or to choose how a date series is saved
+  if (!dataset || dataset.outputChoice || (dataset.years && dataset.exports && dataset.exports.geotiff)) {
     flow.push('output');
   }
 

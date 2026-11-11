@@ -1,29 +1,33 @@
-// ESA WorldCover 2021, one 10 m land cover map.
+// MODIS yearly land cover (IGBP classes), 2001 to 2024.
+
+import legend from './legend.js';
 
 export default {
-  id: 'worldcover',
+  id: 'modis-lc',
   downloadReady: true,
   exports: { csv: false, geotiff: true },
-  sourceKind: 'collection',
-  slug: 'landcover_2021',
-  label: 'Land cover 2021',
-  blurb: 'One 10 m map for 2021 (ESA WorldCover).',
-  collection: 'ESA/WorldCover/v200',
-  band: 'Map',
-  scale: 10,
-  reducer: null,
-  steps: [],
-  years: null,
+  bandPrefix: 'landcover',
+  nativeWgs84: false,
+  slug: 'landcover_yearly',
+  label: 'Land cover by year',
+  blurb: 'Yearly maps from 2001 to 2024 at 500 m (MODIS).',
+  collection: 'MODIS/061/MCD12Q1',
+  band: 'LC_Type1',
+  scale: 500,
+  reducer: 'first',
+  steps: ['yearly'],
+  years: [2001, 2024],
   outputChoice: false,
-
-  // The area table (csv) arrives in a later update
   outputs: ['geotiff'],
 
-  source: 'ESA WorldCover',
-  coverage: '2021, one map',
-  detail: '10 m pixels',
+  // Exported as a CSV next to the map, so the class codes can be read
+  legend,
+
+  source: 'MODIS, NASA',
+  coverage: '2001 to 2024',
+  detail: '500 m pixels',
   unit: 'Land cover class codes',
-  caveat: 'A single snapshot, so it cannot show change over time.',
+  caveat: 'Pixels are 500 m wide, so it suits districts and regions better than small sites.',
   sample: {
     header: ['class', 'area_km2'],
     rows: [['Cropland', '1204.5'], ['Grassland', '830.2'], ['Built-up', '38.1']]

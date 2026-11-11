@@ -3,6 +3,7 @@
 
 import { periodSpec, MAX_BANDS } from './periods.js';
 import { estimatePixels, formatNumber } from './geo.js';
+import { filePrefix } from './naming.js';
 
 const ENDPOINT = 'https://earthengine.googleapis.com/v1';
 
@@ -68,10 +69,10 @@ export function buildTableRequest({ dataset, area, range, timeStep, folderName, 
     url: `${ENDPOINT}/projects/${projectId}/table:export`,
     body: {
       expression: JSON.parse(ee.Serializer.toCloudApiJSON(table)),
-      description: `gd_${folderName}_table`,
+      description: `gd_${filePrefix(folderName)}_table`,
       fileExportOptions: {
         fileFormat: 'CSV',
-        driveDestination: { folder: folderName, filenamePrefix: folderName }
+        driveDestination: { folder: folderName, filenamePrefix: filePrefix(folderName) }
       },
       selectors: ['period', dataset.valueColumn],
       requestId: crypto.randomUUID()
@@ -119,8 +120,8 @@ function stackPeriods(dataset, spec) {
   return ee.ImageCollection.fromImages(images).toBands().rename(names);
 }
 
-function buildRaster(dataset, region, spec) {
-  let image = spec ? stackPeriods(dataset, spec) : staticImage(dataset);
+function finishRaster(dataset, region, source) {
+  let image = source;
 
   // Other projections become plain lat/lon. Nearest neighbour keeps class codes intact.
   if (dataset.nativeWgs84 === false) {
@@ -132,6 +133,21 @@ function buildRaster(dataset, region, spec) {
   return image.clipToBoundsAndScale(region, null, null, null, dataset.scale);
 }
 
+function buildRaster(dataset, region, spec) {
+  return finishRaster(dataset, region, spec ? stackPeriods(dataset, spec) : staticImage(dataset));
+}
+
+// Too many values in one file makes Earth Engine refuse it
+function checkSize(area, dataset, bands) {
+  const values = estimatePixels(area.feature.geometry, dataset.scale) * bands;
+
+  if (values > MAX_RASTER_VALUES) {
+    throw new RequestError(
+      `This map file would hold about ${formatNumber(values)} values, over the limit of ${formatNumber(MAX_RASTER_VALUES)}. Choose a smaller area or fewer periods.`
+    );
+  }
+}
+
 export function buildImageRequest({ dataset, area, range, timeStep, folderName, projectId }) {
   const spec = dataset.years ? periodSpec(range, timeStep) : null;
   const bands = spec ? spec.count : 1;
@@ -140,13 +156,7 @@ export function buildImageRequest({ dataset, area, range, timeStep, folderName, 
     throw new RequestError(`A map file holds up to ${MAX_BANDS} values. Choose fewer periods, or table only.`);
   }
 
-  const values = estimatePixels(area.feature.geometry, dataset.scale) * bands;
-
-  if (values > MAX_RASTER_VALUES) {
-    throw new RequestError(
-      `This map file would hold about ${formatNumber(values)} values, over the limit of ${formatNumber(MAX_RASTER_VALUES)}. Choose a smaller area or fewer periods.`
-    );
-  }
+  checkSize(area, dataset, bands);
 
   const region = ee.Geometry(area.feature.geometry, null, false);
   const image = buildRaster(dataset, region, spec);
@@ -155,12 +165,81 @@ export function buildImageRequest({ dataset, area, range, timeStep, folderName, 
     url: `${ENDPOINT}/projects/${projectId}/image:export`,
     body: {
       expression: JSON.parse(ee.Serializer.toCloudApiJSON(image)),
-      description: `gd_${folderName}_map`,
+      description: `gd_${filePrefix(folderName)}_map`,
       fileExportOptions: {
         fileFormat: 'GEO_TIFF',
-        driveDestination: { folder: folderName, filenamePrefix: folderName }
+        driveDestination: { folder: folderName, filenamePrefix: filePrefix(folderName) }
       },
       maxPixels: '10000000000',
+      requestId: crypto.randomUUID()
+    }
+  };
+}
+
+// ---- Separate files: one map per period, each its own Earth Engine task ----
+
+// One period as its own single-band image
+function periodImage(dataset, spec, period) {
+  const start = ee.Date(spec.startDate).advance(period.index, spec.unit);
+  const inPeriod = ee
+    .ImageCollection(dataset.collection)
+    .select(dataset.band)
+    .filterDate(start, start.advance(1, spec.unit));
+
+  const bandName = `${dataset.bandPrefix}_${period.label.replace(/-/g, '_')}`;
+
+  return combine(inPeriod, dataset.reducer).rename([bandName]);
+}
+
+export function buildPeriodRequest({ dataset, area, range, timeStep, folderName, projectId, period }) {
+  const spec = periodSpec(range, timeStep);
+
+  checkSize(area, dataset, 1);
+
+  const region = ee.Geometry(area.feature.geometry, null, false);
+  const image = finishRaster(dataset, region, periodImage(dataset, spec, period));
+  const name = `${filePrefix(folderName)}_${period.label}`;
+
+  return {
+    url: `${ENDPOINT}/projects/${projectId}/image:export`,
+    body: {
+      expression: JSON.parse(ee.Serializer.toCloudApiJSON(image)),
+      description: `gd_${name}`,
+      fileExportOptions: {
+        fileFormat: 'GEO_TIFF',
+        driveDestination: { folder: folderName, filenamePrefix: name }
+      },
+      maxPixels: '10000000000',
+      requestId: crypto.randomUUID()
+    }
+  };
+}
+
+// ---- Legend: a small CSV that explains the class codes of a land cover map ----
+
+export function buildLegendRequest({ dataset, folderName, projectId }) {
+  const prefix = filePrefix(folderName);
+
+  // A fixed list, so Earth Engine does no real computing for this file
+  const rows = dataset.legend.map((item) =>
+    ee.Feature(null, {
+      code: item.code,
+      name: item.name,
+      color_hex: item.color,
+      description: item.description
+    })
+  );
+
+  return {
+    url: `${ENDPOINT}/projects/${projectId}/table:export`,
+    body: {
+      expression: JSON.parse(ee.Serializer.toCloudApiJSON(ee.FeatureCollection(rows))),
+      description: `gd_${prefix}_legend`,
+      fileExportOptions: {
+        fileFormat: 'CSV',
+        driveDestination: { folder: folderName, filenamePrefix: `${prefix}_legend` }
+      },
+      selectors: ['code', 'name', 'color_hex', 'description'],
       requestId: crypto.randomUUID()
     }
   };

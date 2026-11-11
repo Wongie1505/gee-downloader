@@ -1,5 +1,5 @@
 import { getDataset } from '../../data/catalog.js';
-import { sampleLabels, countPeriods, MAX_BANDS } from '../../core/periods.js';
+import { sampleLabels, countPeriods, MAX_BANDS, MAX_FILES } from '../../core/periods.js';
 import { getState, setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard } from '../../ui/info.js';
@@ -10,28 +10,53 @@ export const hint = 'Tick one or both.';
 
 const OPTIONS = [
   { id: 'csv', name: 'Table (CSV)', note: 'One row per period, ready for Excel.' },
-  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'One band per period. Opens in QGIS or ArcGIS.' }
+  { id: 'geotiff', name: 'Map file (GeoTIFF)', note: 'Opens in QGIS or ArcGIS.' }
 ];
 
-// A map file holds one band per period, so a long range does not fit
-function tooManyBands(state) {
+// How a map for many dates is saved
+const LAYOUTS = [
+  { id: 'separate', name: 'One file per period', note: 'A separate map for each date. Easier to open one at a time, and you see which ones failed.' },
+  { id: 'multiband', name: 'One file with all periods', note: 'A single file with one band per period.' }
+];
+
+// Only date series have a layout choice, one-off maps are a single file
+function showLayout(state, dataset) {
+  return state.outputs.includes('geotiff') && Boolean(dataset.years);
+}
+
+// Separate files are one task each, a multiband file is one band each
+function limitFor(state) {
+  return state.layout === 'separate' ? MAX_FILES : MAX_BANDS;
+}
+
+function tooMany(state) {
   const dataset = getDataset(state.datasetId);
 
   return (
-    state.outputs.includes('geotiff') &&
-    Boolean(dataset.years) &&
+    showLayout(state, dataset) &&
     Boolean(state.range) &&
-    countPeriods(state.range, state.timeStep) > MAX_BANDS
+    countPeriods(state.range, state.timeStep) > limitFor(state)
   );
 }
 
+function limitMessage(state) {
+  if (state.layout === 'separate') {
+    return `Separate files are limited to ${MAX_FILES} per download. Choose monthly steps, fewer years, or the table.`;
+  }
+
+  return `A map file holds up to ${MAX_BANDS} values. Choose fewer periods, or table only.`;
+}
+
 export function isValid(state) {
-  return state.outputs.length > 0 && !tooManyBands(state);
+  return state.outputs.length > 0 && !tooMany(state);
 }
 
 export function render(state) {
   const dataset = getDataset(state.datasetId);
   const list = el('div', { class: 'stack' });
+  const layout = layoutOptions(state);
+
+  layout.hidden = !showLayout(state, dataset);
 
   OPTIONS.forEach((option) => {
     // An output is only offered when the engine can really make it
@@ -40,7 +65,10 @@ export function render(state) {
       type: 'checkbox',
       checked: state.outputs.includes(option.id),
       disabled: !ready,
-      onchange: () => toggle(option.id, box.checked)
+      onchange: () => {
+        toggle(option.id, box.checked);
+        layout.hidden = !showLayout(getState(), dataset);
+      }
     });
 
     list.append(
@@ -53,7 +81,27 @@ export function render(state) {
     );
   });
 
-  return list;
+  return el('div', { class: 'stack' }, list, layout);
+}
+
+// Radio buttons for the layout, shown only when a date series is chosen as a map
+function layoutOptions(state) {
+  const box = el('div', { class: 'stack' }, el('h4', { class: 'info-sub' }, 'How should map files be saved?'));
+
+  LAYOUTS.forEach((option) => {
+    const radio = el('input', {
+      type: 'radio',
+      name: 'layout',
+      checked: state.layout === option.id,
+      onchange: () => setState({ layout: option.id })
+    });
+
+    box.append(
+      el('label', { class: 'check' }, radio, el('span', {}, el('strong', {}, option.name), el('small', {}, option.note)))
+    );
+  });
+
+  return box;
 }
 
 function toggle(id, on) {
@@ -90,10 +138,8 @@ export function pane(state) {
     children.push(el('p', { class: 'caveat muted' }, 'Example layout. The numbers are illustrative.'));
   }
 
-  if (tooManyBands(state)) {
-    children.push(
-      el('p', { class: 'run-error' }, `A map file holds up to ${MAX_BANDS} values. Choose fewer periods, or table only.`)
-    );
+  if (tooMany(state)) {
+    children.push(el('p', { class: 'run-error' }, limitMessage(state)));
   }
 
   return infoCard('What you will get', ...children);
@@ -121,6 +167,10 @@ function bandNote(dataset, state) {
   }
 
   const [first] = sampleLabels(state.range, state.timeStep, 1);
+
+  if (state.layout === 'separate') {
+    return `One file per period, with the period at the end of its name, like ..._${first}.tif. Each covers the rectangle around your area.`;
+  }
 
   return `One file with one band per period, named like ${dataset.bandPrefix}_${first.replace(/-/g, '_')}. It covers the rectangle around your area.`;
 }

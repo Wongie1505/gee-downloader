@@ -8,6 +8,7 @@ const state = {
   range: null,
   timeStep: null,
   outputs: [],
+  layout: 'separate',
   folderName: '',
   tasks: []
 };

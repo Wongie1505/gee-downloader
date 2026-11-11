@@ -1,16 +1,17 @@
 import { getDataset } from '../../data/catalog.js';
 import { countPeriods } from '../../core/periods.js';
+import { FOLDER_PREFIX } from '../../core/naming.js';
 import { setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard, factList } from '../../ui/info.js';
-import { runCard } from '../../ui/run-card.js';
+import { batchCards } from '../../ui/run-card.js';
+import { retryFailed } from '../../core/download.js';
 
 export const label = 'Review';
 export const title = 'Ready to download?';
 export const hint = 'Check the summary and name your Drive folder.';
 
 const FOLDER_PATTERN = /^[A-Za-z0-9_-]+$/;
-const OUTPUT_NAMES = { csv: 'Table (CSV)', geotiff: 'Map file (GeoTIFF)' };
 
 export function isValid(state) {
   return FOLDER_PATTERN.test(state.folderName);
@@ -23,15 +24,53 @@ function slug(text) {
   return clean.slice(0, 30) || 'area';
 }
 
-// Default folder name like rainfall_zomba_2015-2024
-function suggestFolder(state, dataset) {
-  const parts = [dataset.slug, slug(state.area.name)];
+// rainfall_zomba -> Rainfall_Zomba
+function titleCase(text) {
+  return text.replace(/(^|_)([a-z])/g, (match, lead, letter) => lead + letter.toUpperCase());
+}
 
-  if (state.range) {
-    parts.push(`${state.range.start}-${state.range.end}`);
+// Date series saved as separate maps become one file per period
+function mapsAsFiles(state, dataset) {
+  return state.outputs.includes('geotiff') && Boolean(dataset.years) && state.layout === 'separate';
+}
+
+function outputName(id, state, dataset) {
+  if (id === 'csv') {
+    return 'Table (CSV)';
   }
 
-  return parts.join('_');
+  return mapsAsFiles(state, dataset) ? 'Map files (GeoTIFF), one per period' : 'Map file (GeoTIFF)';
+}
+
+// How many files the download creates. Periods without data are skipped, so it can be less.
+function fileCount(state, dataset) {
+  let files = 0;
+
+  state.outputs.forEach((id) => {
+    files += id === 'geotiff' && mapsAsFiles(state, dataset) ? countPeriods(state.range, state.timeStep) : 1;
+  });
+
+  return files + (hasLegend(state, dataset) ? 1 : 0);
+}
+
+// Land cover maps come with a legend file that the user does not pick
+function hasLegend(state, dataset) {
+  return Boolean(dataset && dataset.legend && state.outputs.includes('geotiff'));
+}
+
+// Default folder name like GEE-Downloader_Rainfall_2023-2026-Dedza
+export function suggestFolder(state, dataset) {
+  const place = [];
+
+  if (state.range) {
+    const { start, end } = state.range;
+
+    place.push(start === end ? `${start}` : `${start}-${end}`);
+  }
+
+  place.push(titleCase(slug(state.area.name)));
+
+  return `${FOLDER_PREFIX}${titleCase(dataset.slug)}_${place.join('-')}`;
 }
 
 export function render(state) {
@@ -50,7 +89,13 @@ export function render(state) {
     rows.push(['Period', `${state.range.start} to ${state.range.end}, ${state.timeStep}`]);
   }
 
-  rows.push(['Output', state.outputs.map((id) => OUTPUT_NAMES[id]).join(' and ')]);
+  const outputNames = state.outputs.map((id) => outputName(id, state, dataset));
+
+  if (hasLegend(state, dataset)) {
+    outputNames.push('Legend (CSV)');
+  }
+
+  rows.push(['Output', outputNames.join(' and ')]);
 
   const summary = el('dl', { class: 'summary' });
 
@@ -62,7 +107,7 @@ export function render(state) {
     type: 'text',
     id: 'folder',
     value: suggestion,
-    maxlength: 60
+    maxlength: 100
   });
 
   input.addEventListener('input', () => {
@@ -81,21 +126,22 @@ export function render(state) {
       { class: 'field' },
       el('label', { for: 'folder' }, 'Drive folder name'),
       input,
-      el('small', { class: 'field-note' }, 'Letters, numbers, dash and underscore only.')
+      el('small', { class: 'field-note' }, 'Letters, numbers, dash and underscore only. If this name already exists in your Drive, the files go into that folder.')
     )
   );
 }
 
 // Plain summary of what will be created and where it lands
 export function pane(state) {
-  const files = state.outputs.length;
+  const dataset = getDataset(state.datasetId);
+  const files = state.outputs.length > 0 && state.area ? fileCount(state, dataset) : 0;
   const rows = [['Area', state.area ? state.area.name : 'Not chosen']];
 
   if (state.range) {
     rows.push(['Values', countPeriods(state.range, state.timeStep).toLocaleString('en')]);
   }
 
-  rows.push(['Files', `${files} ${files === 1 ? 'file' : 'files'}`]);
+  rows.push(['Files', `${mapsAsFiles(state, dataset) ? 'Up to ' : ''}${files} ${files === 1 ? 'file' : 'files'}`]);
   rows.push(['Saved to', `My Drive / ${state.folderName}`]);
 
   const summary = infoCard(
@@ -104,15 +150,12 @@ export function pane(state) {
     el('p', { class: 'caveat' }, 'Earth Engine queues the job, so files can take a few minutes to appear in Drive.')
   );
 
-  const dataset = getDataset(state.datasetId);
   const stack = [];
   const lastTask = state.tasks[state.tasks.length - 1];
 
-  // Every output of the latest download gets its own card
+  // The latest download: one card per output, and one grouped card for a date series
   if (lastTask) {
-    state.tasks
-      .filter((task) => task.batch === lastTask.batch)
-      .forEach((task) => stack.push(runCard(task)));
+    stack.push(...batchCards(state.tasks.filter((task) => task.batch === lastTask.batch), retryFailed));
   }
 
   if (dataset && !dataset.downloadReady && !(state.user && state.user.demo)) {

@@ -480,3 +480,33 @@ a:not(.btn) {
 .check input:disabled + span {
   color: var(--muted);
 }
+
+/* ---- Grouped file list ---- */
+.run-files {
+  margin: 10px 0 0;
+}
+
+.run-files summary {
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.run-files-list {
+  max-height: 240px;
+  margin-top: 8px;
+  overflow-y: auto;
+}
+
+.run-file {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 4px 0;
+  font-size: 13px;
+  border-bottom: 1px solid var(--line);
+  overflow-wrap: anywhere;
+}
+
+.run-file-bad {
+  color: var(--danger);
+}

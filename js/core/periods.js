@@ -51,6 +51,10 @@ const BAND_FORMATS = { daily: 'YYYY_MM_dd', monthly: 'YYYY_MM', yearly: 'YYYY' }
 // A map file holds one band per period, and too many bands make it fail
 export const MAX_BANDS = 400;
 
+// Separate files mean one Earth Engine task per period. Each project can queue
+// 3000, so this stays far below that and keeps one download manageable.
+export const MAX_FILES = 400;
+
 // Everything Earth Engine needs to loop over the periods on its side
 export function periodSpec(range, timeStep) {
   return {
@@ -60,4 +64,26 @@ export function periodSpec(range, timeStep) {
     bandFormat: BAND_FORMATS[timeStep],
     count: countPeriods(range, timeStep)
   };
+}
+
+// Every period's label, in order, for file names: 2023, 2023-01, 2023-01-31
+export function periodLabels(range, timeStep) {
+  const total = countPeriods(range, timeStep);
+  const labels = [];
+
+  for (let i = 0; i < total; i += 1) {
+    if (timeStep === 'yearly') {
+      labels.push(String(range.start + i));
+    } else if (timeStep === 'monthly') {
+      const year = range.start + Math.floor(i / 12);
+      const month = String((i % 12) + 1).padStart(2, '0');
+
+      labels.push(`${year}-${month}`);
+    } else {
+      // January 1 plus i days, in UTC so the time zone cannot shift the date
+      labels.push(new Date(Date.UTC(range.start, 0, 1 + i)).toISOString().slice(0, 10));
+    }
+  }
+
+  return labels;
 }

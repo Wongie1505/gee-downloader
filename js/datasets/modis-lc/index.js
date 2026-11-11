@@ -1,5 +1,7 @@
 // MODIS yearly land cover (IGBP classes), 2001 to 2024.
 
+import legend from './legend.js';
+
 export default {
   id: 'modis-lc',
   downloadReady: true,
@@ -17,6 +19,9 @@ export default {
   years: [2001, 2024],
   outputChoice: false,
   outputs: ['geotiff'],
+
+  // Exported as a CSV next to the map, so the class codes can be read
+  legend,
 
   source: 'MODIS, NASA',
   coverage: '2001 to 2024',
