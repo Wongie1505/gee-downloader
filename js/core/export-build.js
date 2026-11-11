@@ -14,17 +14,33 @@ const MAX_RASTER_VALUES = 500e6;
 export class RequestError extends Error {}
 
 // Merge all images of one period into one image
-function combine(inPeriod, reducer) {
-  if (reducer === 'mean') {
-    return inPeriod.mean();
+function combine(inPeriod, dataset) {
+  let images = inPeriod;
+
+  // Values outside the valid range are fill codes, not real data, so hide them
+  if (dataset.validRange) {
+    const [low, high] = dataset.validRange;
+
+    images = inPeriod.map((image) => image.updateMask(image.gte(low).and(image.lte(high))));
   }
 
-  // Class maps have one image per year, so take it as it is
-  if (reducer === 'first') {
-    return ee.Image(inPeriod.first());
+  let merged = null;
+
+  if (dataset.reducer === 'mean') {
+    merged = images.mean();
+  } else if (dataset.reducer === 'first') {
+    // Class maps have one image per year, so take it as it is
+    merged = ee.Image(images.first());
+  } else {
+    merged = images.sum();
   }
 
-  return inPeriod.sum();
+  // Stored integers become real values, for example NDVI 8123 becomes 0.8123
+  if (dataset.scaleFactor) {
+    merged = merged.multiply(dataset.scaleFactor).toFloat();
+  }
+
+  return merged;
 }
 
 // ---- Table: one row per period, the value averaged over the area ----
@@ -39,7 +55,7 @@ function buildSeries(dataset, region, spec) {
     const start = first.advance(index, spec.unit);
     const end = start.advance(1, spec.unit);
     const inPeriod = collection.filterDate(start, end);
-    const stats = combine(inPeriod, dataset.reducer).reduceRegion({
+    const stats = combine(inPeriod, dataset).reduceRegion({
       reducer: ee.Reducer.mean(),
       geometry: region,
       scale: dataset.scale,
@@ -101,7 +117,7 @@ function stackPeriods(dataset, spec) {
       const start = first.advance(index, spec.unit);
       const inPeriod = collection.filterDate(start, start.advance(1, spec.unit));
       const name = ee.String(`${dataset.bandPrefix}_`).cat(start.format(spec.bandFormat));
-      const image = combine(inPeriod, dataset.reducer).rename(ee.List([name]));
+      const image = combine(inPeriod, dataset).rename(ee.List([name]));
 
       return ee.Algorithms.If(inPeriod.size().gt(0), image, null);
     })
@@ -188,7 +204,7 @@ function periodImage(dataset, spec, period) {
 
   const bandName = `${dataset.bandPrefix}_${period.label.replace(/-/g, '_')}`;
 
-  return combine(inPeriod, dataset.reducer).rename([bandName]);
+  return combine(inPeriod, dataset).rename([bandName]);
 }
 
 export function buildPeriodRequest({ dataset, area, range, timeStep, folderName, projectId, period }) {
