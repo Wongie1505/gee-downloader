@@ -4,12 +4,17 @@ import { getMap, refreshMaps } from './ui/map.js';
 import { initMapLayers } from './ui/map-layers.js';
 import { initSignIn, tryRestoreSession } from './screens/signin/signin.js';
 import { initWizard } from './screens/wizard/wizard.js';
+import { initDownloads } from './screens/downloads/downloads.js';
+import { initRunPanel } from './ui/run-panel.js';
 import { CONTACT_EMAIL } from './config.js';
 
 initWizard(
   document.getElementById('wizard-card'),
   document.getElementById('pane-info')
 );
+
+initRunPanel(document.getElementById('run-panel'), document.getElementById('run-pill'));
+initDownloads(document.getElementById('downloads-view'));
 
 // A map needs a visible container, so create each one when its screen first shows
 on('screen:shown', (name) => {

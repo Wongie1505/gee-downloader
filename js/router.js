@@ -1,9 +1,9 @@
-// Hash routing: #home, #about, #app. The page never reloads, so the map
+// Hash routing: #home, #about, #app, #downloads. The page never reloads, so the map
 // and (from Phase 2) the sign-in token survive every screen change.
 
 import { emit, getState } from './state.js';
 
-const SCREENS = ['home', 'about', 'app'];
+const SCREENS = ['home', 'about', 'app', 'downloads'];
 
 export function showScreen(name) {
   document.querySelectorAll('[data-screen]').forEach((screen) => {
@@ -32,11 +32,11 @@ function fromHash() {
   return SCREENS.includes(name) ? name : 'home';
 }
 
-// The app needs a login. Anyone else lands on home and gets the login dialog.
+// The app and My downloads need a login. Anyone else lands on home and gets the login dialog.
 function resolveScreen() {
   const wanted = fromHash();
 
-  if (wanted === 'app' && !getState().user) {
+  if ((wanted === 'app' || wanted === 'downloads') && !getState().user) {
     // Fix the address bar without firing another hashchange
     window.history.replaceState(null, '', '#home');
     emit('auth:required');

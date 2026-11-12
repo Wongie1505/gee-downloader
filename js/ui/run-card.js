@@ -28,7 +28,7 @@ const ROW_STATES = {
 // Remembers if the user opened the file list, so a refresh of the card keeps it
 let listOpen = null;
 
-function bar(fraction) {
+export function bar(fraction) {
   const percent = Math.round(fraction * 100);
 
   return el(

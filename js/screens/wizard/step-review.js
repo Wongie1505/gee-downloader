@@ -4,8 +4,6 @@ import { FOLDER_PREFIX } from '../../core/naming.js';
 import { setState } from '../../state.js';
 import { el } from '../../ui/dom.js';
 import { infoCard, factList } from '../../ui/info.js';
-import { batchCards } from '../../ui/run-card.js';
-import { retryFailed } from '../../core/download.js';
 
 export const label = 'Review';
 export const title = 'Ready to download?';
@@ -151,12 +149,6 @@ export function pane(state) {
   );
 
   const stack = [];
-  const lastTask = state.tasks[state.tasks.length - 1];
-
-  // The latest download: one card per output, and one grouped card for a date series
-  if (lastTask) {
-    stack.push(...batchCards(state.tasks.filter((task) => task.batch === lastTask.batch), retryFailed));
-  }
 
   if (dataset && !dataset.downloadReady && !(state.user && state.user.demo)) {
     stack.push(infoCard('Not available yet', el('p', { class: 'muted' }, 'Downloads for this dataset are coming soon. Rainfall works now.')));

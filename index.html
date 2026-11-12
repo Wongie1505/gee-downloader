@@ -32,10 +32,13 @@
     <nav class="nav" aria-label="Main">
       <a href="#home" data-nav="home">Home</a>
       <a href="#about" data-nav="about">About</a>
+      <a id="downloads-link" href="#downloads" data-nav="downloads" hidden>My downloads</a>
       <!-- Shown on the home screen only. Phase 2 turns this into real sign-in -->
       <a id="login-link" class="btn btn-primary nav-login" href="#app">Log in</a>
       <!-- Demo: view the app flow without logging in. Not connected to Google or Earth Engine -->
       <button id="demo-btn" type="button" class="btn btn-ghost btn-small nav-login" title="View the app without logging in. Nothing is downloaded.">Demo</button>
+      <!-- Opens the progress panel. Shown once a download has been started -->
+      <button id="run-pill" type="button" class="run-pill" aria-controls="run-panel" aria-expanded="false" hidden></button>
       <span id="user-pill" class="user-pill" title="Earth Engine project" hidden></span>
       <button id="logout" type="button" class="btn btn-ghost btn-small" hidden>Log out</button>
     </nav>
@@ -120,7 +123,15 @@
         <div id="pane-info" class="pane-info"></div>
       </div>
     </section>
+
+    <!-- My downloads: every export this app sent to Earth Engine -->
+    <section class="screen downloads" data-screen="downloads" hidden>
+      <div id="downloads-view" class="downloads-view"></div>
+    </section>
   </main>
+
+  <!-- Progress panel: slides in from the right while a download runs -->
+  <aside id="run-panel" class="run-panel" aria-label="Download progress" aria-hidden="true"></aside>
 
   <footer class="footer">
     <span>Built by Wakuzilwa Ms, Malawi University of Science and Technology</span>

@@ -220,4 +220,5 @@ function renderHeader() {
   document.getElementById('logout').hidden = !user;
   document.getElementById('login-link').textContent = user ? 'Open app' : 'Log in';
   document.getElementById('demo-btn').hidden = Boolean(user);
+  document.getElementById('downloads-link').hidden = !user || Boolean(user.demo);
 }
