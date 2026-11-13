@@ -24,7 +24,7 @@ Five datasets:
 | Land cover by year, 2001 to 2024 | MODIS MCD12Q1 | 500 m | GeoTIFF, area table |
 | Elevation | SRTM | 30 m | GeoTIFF |
 
-Areas: pick any of the 32 districts of Malawi, or upload a GeoJSON or a zipped shapefile. Uploads are capped at the size of Mzimba, the largest district.
+Areas: pick any of the 32 districts of Malawi, upload a GeoJSON or a zipped shapefile, or draw a rectangle or polygon on the map. Uploads and drawings are capped at the size of Mzimba, the largest district.
 
 Time steps: daily, monthly or yearly, where the dataset allows it.
 
@@ -80,7 +80,6 @@ Real use needs a Google Earth Engine account with a Cloud project registered for
 
 - It is for Malawi. The district picker and the previews are built around it, although an uploaded area can be anywhere inside the size cap.
 - OpenStreetMap tiles are fine for a demo, not for heavy traffic.
-- Draw-your-own-area is not built yet. It shows as a disabled link.
 - My downloads checks the latest 500 jobs in your project.
 - Retry only works for the download you just ran, because the original choices are kept in memory.
 - NDVI is not filtered by the quality flag, so cloudy rainy-season months can be noisy or empty.

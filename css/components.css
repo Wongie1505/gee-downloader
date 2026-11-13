@@ -408,6 +408,47 @@ a:not(.btn) {
   color: var(--muted);
 }
 
+/* ---- Draw panel ---- */
+.draw-panel {
+  margin: 12px 0 0;
+  padding: 10px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--r-item);
+}
+
+.draw-shapes,
+.draw-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.draw-buttons {
+  margin-top: 8px;
+}
+
+.chip {
+  padding: 4px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  cursor: pointer;
+}
+
+.chip.on {
+  color: var(--contour);
+  background: var(--contour-soft);
+  border-color: var(--contour);
+}
+
+.leaflet-container.is-drawing,
+.leaflet-container.is-drawing .leaflet-interactive {
+  cursor: crosshair;
+}
+
 .link[disabled] {
   color: var(--muted);
   text-decoration: none;
