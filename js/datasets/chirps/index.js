@@ -8,6 +8,9 @@ export default {
   exports: { csv: true, geotiff: true },
   valueColumn: 'rainfall_mm',
   bandPrefix: 'rainfall_mm',
+  // Marks cells outside the area in an exact clip. Zero is real rainfall, so it cannot be 0.
+  noData: -9999,
+
   slug: 'rainfall',
   label: 'Rainfall',
   blurb: 'Daily rainfall since 1981. Pixels are about 5.5 km wide.',

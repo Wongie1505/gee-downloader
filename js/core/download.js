@@ -103,7 +103,8 @@ async function runTask(task, dataset) {
       timeStep: context.timeStep,
       folderName: context.folderName,
       projectId: context.projectId,
-      period: task.period
+      period: task.period,
+      extent: context.extent
     });
 
     const operation = await postWithRetry(request.url, request.body);
@@ -250,6 +251,7 @@ export async function startDownload() {
     range: state.range,
     timeStep: state.timeStep,
     folderName: state.folderName,
+    extent: state.extent,
     projectId: state.user.projectId
   };
 

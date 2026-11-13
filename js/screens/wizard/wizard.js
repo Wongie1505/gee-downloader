@@ -32,8 +32,8 @@ export function getFlow(datasetId) {
     flow.push('time');
   }
 
-  // Needed for several outputs, or to choose how a date series is saved
-  if (!dataset || dataset.outputChoice || (dataset.years && dataset.exports && dataset.exports.geotiff)) {
+  // Needed for several outputs, or to choose how a map is cut and saved
+  if (!dataset || dataset.outputChoice || (dataset.exports && dataset.exports.geotiff)) {
     flow.push('output');
   }
 

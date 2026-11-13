@@ -8,6 +8,9 @@ export default {
   exports: { csv: true, geotiff: true },
   bandPrefix: 'landcover',
   nativeWgs84: false,
+  // Marks cells outside the area in an exact clip. No class uses 255.
+  noData: 255,
+
   slug: 'landcover_yearly',
   label: 'Land cover by year',
   blurb: 'Yearly maps from 2001 to 2024 at 500 m (MODIS).',

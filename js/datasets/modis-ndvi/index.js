@@ -15,6 +15,9 @@ export default {
   scaleFactor: 0.0001,
   validRange: [-2000, 10000],
 
+  // Marks cells outside the area in an exact clip
+  noData: -9999,
+
   slug: 'ndvi',
   label: 'Vegetation (NDVI)',
   blurb: 'How green the land is, every 16 days at 250 m.',

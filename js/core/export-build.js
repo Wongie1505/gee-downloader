@@ -136,7 +136,9 @@ function stackPeriods(dataset, spec) {
   return ee.ImageCollection.fromImages(images).toBands().rename(names);
 }
 
-function finishRaster(dataset, region, source) {
+// extent 'exact' empties every cell outside the shape. Anything else keeps the
+// whole rectangle around the area, which is the tightest box that holds it.
+function finishRaster(dataset, region, source, extent) {
   let image = source;
 
   // Other projections become plain lat/lon. Nearest neighbour keeps class codes intact.
@@ -144,13 +146,32 @@ function finishRaster(dataset, region, source) {
     image = image.reproject('EPSG:4326', null, dataset.scale);
   }
 
-  // The file covers the rectangle around the area. Cutting to the exact
-  // shape would write zeros outside it, which look like real data.
+  if (extent === 'exact') {
+    image = image.clip(region);
+  }
+
+  // A file is always a rectangle. Without the clip above, every cell in it
+  // holds real data. Cutting to the shape without a NoData value would write
+  // zeros, which look like data.
   return image.clipToBoundsAndScale(region, null, null, null, dataset.scale);
 }
 
-function buildRaster(dataset, region, spec) {
-  return finishRaster(dataset, region, spec ? stackPeriods(dataset, spec) : staticImage(dataset));
+function buildRaster(dataset, region, spec, extent) {
+  return finishRaster(dataset, region, spec ? stackPeriods(dataset, spec) : staticImage(dataset), extent);
+}
+
+// File options for a GeoTIFF. An exact clip says which value means empty.
+function geoTiffOptions(dataset, extent, folderName, name) {
+  const options = {
+    fileFormat: 'GEO_TIFF',
+    driveDestination: { folder: folderName, filenamePrefix: name }
+  };
+
+  if (extent === 'exact') {
+    options.geoTiffOptions = { noData: { floatValue: dataset.noData } };
+  }
+
+  return options;
 }
 
 // Too many values in one file makes Earth Engine refuse it
@@ -164,7 +185,7 @@ function checkSize(area, dataset, bands) {
   }
 }
 
-export function buildImageRequest({ dataset, area, range, timeStep, folderName, projectId }) {
+export function buildImageRequest({ dataset, area, range, timeStep, folderName, projectId, extent }) {
   const spec = dataset.years ? periodSpec(range, timeStep) : null;
   const bands = spec ? spec.count : 1;
 
@@ -175,17 +196,14 @@ export function buildImageRequest({ dataset, area, range, timeStep, folderName, 
   checkSize(area, dataset, bands);
 
   const region = ee.Geometry(area.feature.geometry, null, false);
-  const image = buildRaster(dataset, region, spec);
+  const image = buildRaster(dataset, region, spec, extent);
 
   return {
     url: `${ENDPOINT}/projects/${projectId}/image:export`,
     body: {
       expression: JSON.parse(ee.Serializer.toCloudApiJSON(image)),
       description: `gd_${filePrefix(folderName)}_map`,
-      fileExportOptions: {
-        fileFormat: 'GEO_TIFF',
-        driveDestination: { folder: folderName, filenamePrefix: filePrefix(folderName) }
-      },
+      fileExportOptions: geoTiffOptions(dataset, extent, folderName, filePrefix(folderName)),
       maxPixels: '10000000000',
       requestId: crypto.randomUUID()
     }
@@ -207,13 +225,13 @@ function periodImage(dataset, spec, period) {
   return combine(inPeriod, dataset).rename([bandName]);
 }
 
-export function buildPeriodRequest({ dataset, area, range, timeStep, folderName, projectId, period }) {
+export function buildPeriodRequest({ dataset, area, range, timeStep, folderName, projectId, period, extent }) {
   const spec = periodSpec(range, timeStep);
 
   checkSize(area, dataset, 1);
 
   const region = ee.Geometry(area.feature.geometry, null, false);
-  const image = finishRaster(dataset, region, periodImage(dataset, spec, period));
+  const image = finishRaster(dataset, region, periodImage(dataset, spec, period), extent);
   const name = `${filePrefix(folderName)}_${period.label}`;
 
   return {
@@ -221,10 +239,7 @@ export function buildPeriodRequest({ dataset, area, range, timeStep, folderName,
     body: {
       expression: JSON.parse(ee.Serializer.toCloudApiJSON(image)),
       description: `gd_${name}`,
-      fileExportOptions: {
-        fileFormat: 'GEO_TIFF',
-        driveDestination: { folder: folderName, filenamePrefix: name }
-      },
+      fileExportOptions: geoTiffOptions(dataset, extent, folderName, name),
       maxPixels: '10000000000',
       requestId: crypto.randomUUID()
     }

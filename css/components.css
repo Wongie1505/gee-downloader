@@ -649,3 +649,13 @@ a:not(.btn) {
     transition: none;
   }
 }
+
+.tag {
+  padding: 1px 8px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--contour);
+  background: var(--contour-soft);
+  border: 1px solid var(--contour);
+  border-radius: 999px;
+}

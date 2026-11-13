@@ -5,6 +5,9 @@ export default {
   downloadReady: true,
   exports: { csv: false, geotiff: true },
   sourceKind: 'image',
+  // Marks cells outside the area in an exact clip
+  noData: -9999,
+
   slug: 'elevation',
   label: 'Elevation',
   blurb: 'Height above sea level at 30 m (SRTM).',

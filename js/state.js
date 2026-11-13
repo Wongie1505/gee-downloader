@@ -9,6 +9,7 @@ const state = {
   timeStep: null,
   outputs: [],
   layout: 'separate',
+  extent: 'rectangle',
   folderName: '',
   tasks: []
 };

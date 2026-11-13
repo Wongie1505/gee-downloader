@@ -5,6 +5,7 @@
 // sourceKind:    'collection' (default) or 'image' for a single image
 // bandPrefix:    start of each band name in a multiband map file
 // scaleFactor:   multiplies the stored integers into real values
+// noData:        value for empty cells when a map is cut to the exact shape
 // validRange:    [low, high], anything outside is a fill code and is hidden
 // nativeWgs84:   false means the data is in another projection and is
 //                converted to plain lat/lon on export

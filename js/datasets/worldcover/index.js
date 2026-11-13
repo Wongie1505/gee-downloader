@@ -7,6 +7,9 @@ export default {
   downloadReady: true,
   exports: { csv: true, geotiff: true },
   sourceKind: 'collection',
+  // Marks cells outside the area in an exact clip. No class uses 255.
+  noData: 255,
+
   slug: 'landcover_2021',
   label: 'Land cover 2021',
   blurb: 'One 10 m map for 2021 (ESA WorldCover).',
